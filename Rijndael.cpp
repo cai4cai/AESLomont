@@ -255,15 +255,17 @@ bool CheckInvByteSub(bool create) {
 bool CheckRcon(bool create) {
   unsigned char Ri = 1;  // start here
 
-  if (create == true)
+  if (create == true) {
     Rcon[0] = 0;
-  else if (Rcon[0] != 0)
+  } else if (Rcon[0] != 0) {
     return false;  // todo - this is unused still check?
+  }
   for (unsigned int i = 1; i < sizeof(Rcon) / sizeof(Rcon[0]) - 1; i++) {
-    if (create == true)
+    if (create == true) {
       Rcon[i] = Ri;
-    else if (Rcon[i] != Ri)
+    } else if (Rcon[i] != Ri) {
       return false;
+    }
     Ri = GF2_8_mult(Ri, 0x02);  // multiply by x - todo replace with xmult
   }
   return true;
@@ -272,12 +274,16 @@ bool CheckRcon(bool create) {
 
 // the transforms
 void Rijndael::ByteSub(void) {
-  for (int pos = 0; pos < state_size; pos++) state[pos] = byte_sub[state[pos]];
+  for (int pos = 0; pos < state_size; pos++) {
+    state[pos] = byte_sub[state[pos]];
+  }
 }  // ByteSub
 
 void Rijndael::InvByteSub(void) {
   unsigned char *s = state;
-  for (int pos = 0; pos < state_size; pos++) *s = inv_byte_sub[*s++];
+  for (int pos = 0; pos < state_size; pos++) {
+    *s = inv_byte_sub[*(s + 1)];
+  }
 }  // InvByteSub
 
 void Rijndael::ShiftRow(void) {
@@ -285,40 +291,76 @@ void Rijndael::ShiftRow(void) {
   int i, j;
 
   // copy out row, then copy back 2 pieces shifted
-  for (j = 0, i = 1; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = C1, i = 1; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 1 + 4 * (Nb - C1); j < C1; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 1; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = C1, i = 1; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 1 + 4 * (Nb - C1); j < C1; i += 4, j++) {
+    state[i] = arr[j];
+  }
 
-  for (j = 0, i = 2; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = C2, i = 2; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 2 + 4 * (Nb - C2); j < C2; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 2; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = C2, i = 2; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 2 + 4 * (Nb - C2); j < C2; i += 4, j++) {
+    state[i] = arr[j];
+  }
 
-  for (j = 0, i = 3; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = C3, i = 3; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 3 + 4 * (Nb - C3); j < C3; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 3; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = C3, i = 3; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 3 + 4 * (Nb - C3); j < C3; i += 4, j++) {
+    state[i] = arr[j];
+  }
 }  // ShiftRow
 
 void Rijndael::InvShiftRow(void) {
   unsigned char arr[10];
   int i, j;
 
-  for (j = 0, i = 1; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = Nb - C1, i = 1; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 1 + 4 * C1; j < Nb - C1; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 1; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = Nb - C1, i = 1; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 1 + 4 * C1; j < Nb - C1; i += 4, j++) {
+    state[i] = arr[j];
+  }
 
-  for (j = 0, i = 2; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = Nb - C2, i = 2; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 2 + 4 * C2; j < Nb - C2; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 2; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = Nb - C2, i = 2; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 2 + 4 * C2; j < Nb - C2; i += 4, j++) {
+    state[i] = arr[j];
+  }
 
-  for (j = 0, i = 3; j < Nb; i += 4, j++) arr[j] = state[i];
-  for (j = Nb - C3, i = 3; j < Nb; i += 4, j++) state[i] = arr[j];
-  for (j = 0, i = 3 + 4 * C3; j < Nb - C3; i += 4, j++) state[i] = arr[j];
+  for (j = 0, i = 3; j < Nb; i += 4, j++) {
+    arr[j] = state[i];
+  }
+  for (j = Nb - C3, i = 3; j < Nb; i += 4, j++) {
+    state[i] = arr[j];
+  }
+  for (j = 0, i = 3 + 4 * C3; j < Nb - C3; i += 4, j++) {
+    state[i] = arr[j];
+  }
 }  // InvShiftRow
 
 #define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
 
-void Rijndael::MixColumn(
-    void) {  // poly32 used here - we hard coded - todo - use defines
+void Rijndael::MixColumn(void) {
+  // poly32 used here - we hard coded - todo - use defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
   for (int col = 0; col < Nb; col++) {
     a0 = state[col * 4 + 0];
@@ -340,8 +382,8 @@ void Rijndael::MixColumn(
   }
 }  // MixColumn
 
-void Rijndael::InvMixColumn(
-    void) {  // poly32_inv used here - we hard coded - todo - defines
+void Rijndael::InvMixColumn(void) {
+  // poly32_inv used here - we hard coded - todo - defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
   for (int col = 0; col < Nb; col++) {
     a0 = state[4 * col + 0];
@@ -428,7 +470,9 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
   uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(W);
   if (Nk <= 6) {
     // todo - memcpy
-    for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
+    for (i = 0; i < 4 * Nk; i++) {
+      W[i] = key[i];
+    }
     for (i = Nk; i < Nb * (Nr + 1); i++) {
       temp = Wb[i - 1];
       if ((i % Nk) == 0) {
@@ -438,7 +482,9 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
     }
   } else {
     // todo - memcpy
-    for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
+    for (i = 0; i < 4 * Nk; i++) {
+      W[i] = key[i];
+    }
     for (i = Nk; i < Nb * (Nr + 1); i++) {
       temp = Wb[i - 1];
       if ((i % Nk) == 0) {
@@ -454,10 +500,12 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
 void Rijndael::SetParameters(int keylength, int blocklength) {
   Nk = Nr = Nb = 0;  // default values
 
-  if ((keylength != 128) && (keylength != 192) && (keylength != 256))
+  if ((keylength != 128) && (keylength != 192) && (keylength != 256)) {
     return;  // nothing - todo - throw error?
-  if ((blocklength != 128) && (blocklength != 192) && (blocklength != 256))
+  }
+  if ((blocklength != 128) && (blocklength != 192) && (blocklength != 256)) {
     return;  // nothing - todo - throw error?
+  }
 
   // legal parameters, so fire it up
   Nk = keylength / 32;
