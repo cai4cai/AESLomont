@@ -35,7 +35,7 @@
 
 #include <cassert>
 #include <cstdio>
-
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -584,7 +584,7 @@ void Rijndael::EncryptBlock(
   const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
   uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
-  memcpy(state, datain, state_size);
+  std::memcpy(state, datain, state_size);
   AddRoundKey(0);
   for (int i = 1; i < Nr; i++) {
     Round(i);
@@ -599,7 +599,7 @@ void Rijndael::EncryptBlock(
     }
   }
   FinalRound(Nr);
-  memcpy(dataout, state, state_size);
+  std::memcpy(dataout, state, state_size);
 }  // Encrypt
 
 // call this to encrypt any size block
@@ -618,14 +618,15 @@ void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
       break;
     case CBC: {
       unsigned char buffer[64];
-      memset(buffer, 0,
-             sizeof(buffer));  // clear out - todo - allow setting the
-                               // Initialization Vector - needed for security
+      std::memset(
+          buffer, 0,
+          sizeof(buffer));  // clear out - todo - allow setting the
+                            // Initialization Vector - needed for security
       while (numBlocks) {
         for (unsigned int pos = 0; pos < blocksize; ++pos)
           buffer[pos] ^= *datain++;
         EncryptBlock(buffer, dataout);
-        memcpy(buffer, dataout, blocksize);
+        std::memcpy(buffer, dataout, blocksize);
         dataout += blocksize;
         --numBlocks;
       }
@@ -646,7 +647,7 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
   const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
   uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
-  memcpy(state, datain, state_size);
+  std::memcpy(state, datain, state_size);
   InvFinalRound(Nr);
   for (int i = Nr - 1; i > 0; i--) {
     if (0 != states) {  // compare
@@ -661,7 +662,7 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
     InvRound(i);
   }
   AddRoundKey(0);
-  memcpy(dataout, state, state_size);
+  std::memcpy(dataout, state, state_size);
 }  // Decrypt
 
 // call this to decrypt any size block
@@ -680,9 +681,10 @@ void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
       break;
     case CBC: {
       unsigned char buffer[64];
-      memset(buffer, 0,
-             sizeof(buffer));  // clear out - todo - allow setting the
-                               // Initialization Vector - needed for security
+      std::memset(
+          buffer, 0,
+          sizeof(buffer));  // clear out - todo - allow setting the
+                            // Initialization Vector - needed for security
       DecryptBlock(datain, dataout);  // do first block
       for (unsigned int pos = 0; pos < blocksize; ++pos)
         *dataout++ ^= buffer[pos];

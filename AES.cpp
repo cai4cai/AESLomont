@@ -36,6 +36,7 @@
 #include <bit>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -753,7 +754,7 @@ void AES::Encrypt(const unsigned char* datain, unsigned char* dataout,
     }
     case CBC: {
       unsigned char buffer[64];
-      memset(buffer, 0, sizeof(buffer));
+      std::memset(buffer, 0, sizeof(buffer));
       // clear out - TODO(unknown) - allow setting the
       // Initialization Vector - needed for security
       while (numBlocks) {
@@ -761,7 +762,7 @@ void AES::Encrypt(const unsigned char* datain, unsigned char* dataout,
           buffer[pos] ^= *datain++;
         }
         EncryptBlock(buffer, dataout);
-        memcpy(buffer, dataout, blocksize);
+        std::memcpy(buffer, dataout, blocksize);
         dataout += blocksize;
         --numBlocks;
       }
@@ -900,9 +901,10 @@ void AES::Decrypt(const unsigned char* datain, unsigned char* dataout,
       break;
     case CBC: {
       unsigned char buffer[64];
-      memset(buffer, 0,
-             sizeof(buffer));  // clear out - TODO(unknown) - allow setting the
-                               // Initialization Vector - needed for security
+      std::memset(
+          buffer, 0,
+          sizeof(buffer));  // clear out - TODO(unknown) - allow setting the
+                            // Initialization Vector - needed for security
       DecryptBlock(datain, dataout);  // do first block
       for (unsigned int pos = 0; pos < blocksize; ++pos)
         *dataout++ ^= buffer[pos];
