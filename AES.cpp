@@ -143,10 +143,8 @@ T RotByteL(T a) {
 #endif
 
 // mult 2 elements using gf2_8_poly as a reduction
-inline unsigned char GF2_8_mult(
-    unsigned char a,
-    unsigned char
-        b) {  // TODO(unknown) - make 4x4 table for nibbles, use lookup
+inline unsigned char GF2_8_mult(unsigned char a, unsigned char b) {
+  // TODO(unknown) - make 4x4 table for nibbles, use lookup
   unsigned char result = 0;
 
   // should give 0x57 . 0x13 = 0xFE with poly 0x11B
@@ -296,17 +294,19 @@ bool CheckInvByteSub(bool create) {
 bool CheckRcon(bool create) {
   unsigned char Ri = 1;  // start here
 
-  if (create == true)
+  if (create == true) {
     Rcon[0] = 0;
-  else if (Rcon[0] != 0)
+  } else if (Rcon[0] != 0) {
     return false;  // TODO(unknown) - this is unused still check?
+  }
   for (unsigned int i = 1; i < sizeof(Rcon) / sizeof(Rcon[0]) - 1; i++) {
-    if (create == true)
+    if (create == true) {
       Rcon[i] = Ri;
-    else if (Rcon[i] != Ri)
+    } else if (Rcon[i] != Ri) {
       return false;
-    Ri = GF2_8_mult(Ri,
-                    0x02);  // multiply by x - TODO(unknown) replace with xmult
+    }
+    // multiply by x - TODO(unknown) replace with xmult
+    Ri = GF2_8_mult(Ri, 0x02);
   }
   return true;
 }  // CheckRCon

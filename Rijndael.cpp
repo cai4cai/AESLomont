@@ -53,13 +53,13 @@ namespace {  // anonymous namespace
 bool tablesInitialized = false;
 
 // constants defining the algorithm
-int const gf2_8_poly = 0x11B;  // the poly defining the 256 element field
+int32_t const gf2_8_poly = 0x11B;  // the poly defining the 256 element field
 // poly defining mixing, coeffs usually '03010102'
 // const uint32_t poly32 = 0x03010102;
 // poly inverse, coeffs usually '0B0D090E'
 // const uint32_t poly32_inv = 0x0B0D090E;
 
-int const parameters[] = {
+int32_t const parameters[] = {
     // data in  Nr,C1,C2,C3 form
     // Nk*32 128         192         256
     10, 1, 2, 3, 12, 1, 2, 3, 14, 1, 2, 3,  // Nb*32 = 128
@@ -145,7 +145,7 @@ unsigned char inv_byte_sub[256] = {
 
 // this table needs Nb*(Nr+1)/Nk entries - up to 8*(15)/4 = 60
 uint32_t Rcon[60] = {
-    // todo -  this table may be stored as bytes or made on the fly
+    // TODO(unknown) -  this table may be stored as bytes or made on the fly
     0x00000000, 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010,
     0x00000020, 0x00000040, 0x00000080, 0x0000001b, 0x00000036, 0x0000006c,
     0x000000d8, 0x000000ab, 0x0000004d, 0x0000009a, 0x0000002f, 0x0000005e,
@@ -159,9 +159,8 @@ uint32_t Rcon[60] = {
 };
 
 // mult 2 elements using gf2_8_poly as a reduction
-unsigned char GF2_8_mult(
-    unsigned char a,
-    unsigned char b) {  // todo - make 4x4 table for nibbles, use lookup
+unsigned char GF2_8_mult(unsigned char a, unsigned char b) {
+  // TODO(unknown) - make 4x4 table for nibbles, use lookup
   unsigned char result = 0;
 
   // should give 0x57 . 0x13 = 0xFE with poly 0x11B
@@ -269,7 +268,7 @@ bool CheckRcon(bool create) {
   if (create == true) {
     Rcon[0] = 0;
   } else if (Rcon[0] != 0) {
-    return false;  // todo - this is unused still check?
+    return false;  // TODO(unknown) - this is unused still check?
   }
   for (unsigned int i = 1; i < sizeof(Rcon) / sizeof(Rcon[0]) - 1; i++) {
     if (create == true) {
@@ -277,7 +276,8 @@ bool CheckRcon(bool create) {
     } else if (Rcon[i] != Ri) {
       return false;
     }
-    Ri = GF2_8_mult(Ri, 0x02);  // multiply by x - todo replace with xmult
+    Ri = GF2_8_mult(Ri,
+                    0x02);  // multiply by x - TODO(unknown) replace with xmult
   }
   return true;
 }  // CheckRCon
@@ -377,7 +377,7 @@ void Rijndael::InvShiftRow(void) {
 #define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
 
 void Rijndael::MixColumn(void) {
-  // poly32 used here - we hard coded - todo - use defines
+  // poly32 used here - we hard coded - TODO(unknown) - use defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
   for (int col = 0; col < this->m_Nb; col++) {
     a0 = this->m_state[col * 4 + 0];
@@ -385,7 +385,7 @@ void Rijndael::MixColumn(void) {
     a2 = this->m_state[col * 4 + 2];
     a3 = this->m_state[col * 4 + 3];
 
-    // todo - this could be sped up with a 2 = xmult function, and 3 =
+    // TODO(unknown) - this could be sped up with a 2 = xmult function, and 3 =
     // xmult(a)^a
     b0 = xmult(a0) ^ a1 ^ xmult(a1) ^ a2 ^ a3;
     b1 = a0 ^ xmult(a1) ^ a2 ^ xmult(a2) ^ a3;
@@ -400,7 +400,7 @@ void Rijndael::MixColumn(void) {
 }  // MixColumn
 
 void Rijndael::InvMixColumn(void) {
-  // poly32_inv used here - we hard coded - todo - defines
+  // poly32_inv used here - we hard coded - TODO(unknown) - defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
   for (int col = 0; col < this->m_Nb; col++) {
     a0 = this->m_state[4 * col + 0];
@@ -463,7 +463,8 @@ void Rijndael::InvFinalRound(int round) {
 uint32_t Rijndael::RotByte(uint32_t data) {
   // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
   return (data << 24) | (data >> 8);
-  // todo inline with rotr
+  // return std::rotr(data, 8);
+  // TODO(unknown) inline with rotr
 }  // RotByte
 
 uint32_t Rijndael::SubByte(uint32_t data) {
@@ -483,10 +484,10 @@ uint32_t Rijndael::SubByte(uint32_t data) {
 void Rijndael::KeyExpansion(const unsigned char *key) {
   assert(this->m_Nk > 0);
   int i;
-  // todo not portable - Endian problems
+  // TODO(unknown) not portable - Endian problems
   uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(this->m_W);
   if (this->m_Nk <= 6) {
-    // todo - memcpy
+    // TODO(unknown) - memcpy
     for (i = 0; i < 4 * this->m_Nk; i++) {
       this->m_W[i] = key[i];
     }
@@ -498,7 +499,7 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
       Wb[i] = Wb[i - this->m_Nk] ^ temp;
     }
   } else {
-    // todo - memcpy
+    // TODO(unknown) - memcpy
     for (i = 0; i < 4 * this->m_Nk; i++) {
       this->m_W[i] = key[i];
     }
@@ -518,10 +519,10 @@ void Rijndael::SetParameters(int keylength, int blocklength) {
   this->m_Nk = this->m_Nr = this->m_Nb = 0;  // default values
 
   if ((keylength != 128) && (keylength != 192) && (keylength != 256)) {
-    return;  // nothing - todo - throw error?
+    return;  // nothing - TODO(unknown) - throw error?
   }
   if ((blocklength != 128) && (blocklength != 192) && (blocklength != 256)) {
-    return;  // nothing - todo - throw error?
+    return;  // nothing - TODO(unknown) - throw error?
   }
 
   // legal parameters, so fire it up
@@ -650,7 +651,7 @@ void DumpHex(const unsigned char *table,
 void Rijndael::EncryptBlock(const unsigned char *datain1,
                             unsigned char *dataout1,
                             const unsigned char *states) {
-  // todo ? allow in place encryption
+  // TODO(unknown) ? allow in place encryption
   const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
   uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
@@ -691,7 +692,7 @@ void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
       unsigned char buffer[64];
       std::memset(
           buffer, 0,
-          sizeof(buffer));  // clear out - todo - allow setting the
+          sizeof(buffer));  // clear out - TODO(unknown) - allow setting the
                             // Initialization Vector - needed for security
       while (numBlocks) {
         for (unsigned int pos = 0; pos < blocksize; ++pos)
@@ -756,8 +757,9 @@ void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
     }
     case CBC: {
       unsigned char buffer[64];
-      std::memset(buffer, 0,
-                  sizeof(buffer));  // clear out - todo - allow setting the
+      std::memset(
+          buffer, 0,
+          sizeof(buffer));  // clear out - TODO(unknown) - allow setting the
       // Initialization Vector - needed for security
       DecryptBlock(datain, dataout);  // do first block
       for (unsigned int pos = 0; pos < blocksize; ++pos) {
