@@ -117,16 +117,18 @@ void TextToHex(const char* in, char* data) {
   int val;
   while (*in) {
     val = *in++;
-    if (val > '9')
+    if (val > '9') {
       val = toupper(val) - 'A' + 10;
-    else
+    } else {
       val = val - '0';
+    }
     *data = val * 16;
     val = *in++;
-    if (val > '9')
+    if (val > '9') {
       val = toupper(val) - 'A' + 10;
-    else
+    } else {
       val = val - '0';
+    }
     *data++ += val;
   }
 }  // TextToHex
@@ -167,7 +169,7 @@ bool TestVector(const test_t& vector, bool use_states) {
 #endif
 
   // check that temp = cipher
-  if (memcmp(ciphertext, temptext, blocklen) != 0) {
+  if (std::memcmp(ciphertext, temptext, blocklen) != 0) {
     std::cout << "Error: encryption error\n";
     retval = false;
   } else {
@@ -185,7 +187,7 @@ bool TestVector(const test_t& vector, bool use_states) {
   crypt.DecryptBlock(ciphertext, temptext);
 #endif
 
-  if (memcmp(plaintext, temptext, blocklen) != 0) {
+  if (std::memcmp(plaintext, temptext, blocklen) != 0) {
     std::cout << "Error: decryption error\n";
     retval = false;
   } else {

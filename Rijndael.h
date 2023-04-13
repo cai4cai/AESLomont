@@ -126,9 +126,6 @@ class Rijndael {
   void InvMixColumn(void);
   void AddRoundKey(int round);
 
-  uint32_t RotByte(uint32_t data);
-  uint32_t SubByte(uint32_t data);
-
   // the round functions
   void Round(int round);
   void FinalRound(int round);

@@ -158,6 +158,8 @@ uint32_t Rcon[60] = {
     0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x0000001b,
 };
 
+#define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
+
 // mult 2 elements using gf2_8_poly as a reduction
 unsigned char GF2_8_mult(unsigned char a, unsigned char b) {
   // TODO(unknown) - make 4x4 table for nibbles, use lookup
@@ -281,7 +283,130 @@ bool CheckRcon(bool create) {
   }
   return true;
 }  // CheckRCon
-}  // namespace
+
+void DumpCharTable(std::ostream &out, const char *name,
+                   const unsigned char *table,
+                   int length) {  // dump te contents of a table to a file
+  int pos;
+  out << name << std::endl << std::hex;
+  for (pos = 0; pos < length; pos++) {
+    out << "0x";
+    if (table[pos] < 16) {
+      out << '0';
+    }
+    out << static_cast<unsigned int>(table[pos]) << ',';
+    if ((pos % 16) == 15) {
+      out << std::endl;
+    }
+  }
+  out << std::dec;
+}  // DumpCharTable
+
+void DumpLongTable(std::ostream &out, const char *name, const uint32_t *table,
+                   int length) {  // dump te contents of a table to a file
+  int pos;
+  out << name << std::endl << std::hex;
+  for (pos = 0; pos < length; pos++) {
+    out << "0x";
+    if (table[pos] < 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    out << static_cast<unsigned int>(table[pos]) << ',';
+    if ((pos % 8) == 7) {
+      out << std::endl;
+    }
+  }
+  out << std::dec;
+}  // DumpCharTable
+
+// return true iff tables are valid. create = true fills them in if not
+bool CreateRijndaelTables(bool create, bool create_file) {
+  bool retval = true;
+  if (CheckInverses(create) == false) {
+    retval = false;
+  }
+  if (CheckByteSub(create) == false) {
+    retval = false;
+  }
+  if (CheckInvByteSub(create) == false) {
+    retval = false;
+  }
+  if (CheckRcon(create) == false) {
+    return false;
+  }
+
+  if (create_file == true) {  // dump tables
+    std::ofstream out;
+    out.open("Tables.dat");
+    if (out.is_open() == true) {
+      DumpCharTable(out, "gf2_8_inv", gf2_8_inv, 256);
+      out << "\n\n";
+      DumpCharTable(out, "byte_sub", byte_sub, 256);
+      out << "\n\n";
+      DumpCharTable(out, "inv_byte_sub", inv_byte_sub, 256);
+      out << "\n\n";
+      DumpLongTable(out, "RCon", Rcon, 60);
+      out.close();
+    }
+  }
+  return retval;
+}  // CreateRijndaelTables
+
+void DumpHex(const unsigned char *table,
+             int length) {  // dump some hex values for debugging
+  int pos;
+  std::cerr << std::hex;
+  for (pos = 0; pos < length; pos++) {
+    if (table[pos] < 16) {
+      std::cerr << '0';
+    }
+    std::cerr << static_cast<unsigned int>(table[pos]) << ' ';
+    if ((pos % 16) == 15) {
+      std::cerr << std::endl;
+    }
+  }
+  std::cerr << std::dec;
+}  // DumpHex
+
+uint32_t RotByte(uint32_t data) {
+  // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
+  return (data << 24) | (data >> 8);
+  // return std::rotr(data, 8);
+  // TODO(unknown) inline with rotr
+}  // RotByte
+
+uint32_t SubByte(uint32_t data) {
+  // does the SBox on this 4 byte data
+  uint32_t result = 0;
+  result = byte_sub[data >> 24];
+  result <<= 8;
+  result |= byte_sub[(data >> 16) & 255];
+  result <<= 8;
+  result |= byte_sub[(data >> 8) & 255];
+  result <<= 8;
+  result |= byte_sub[data & 255];
+  return result;
+}  // SubByte
+
+}  // anonymous namespace
 
 // the transforms
 void Rijndael::ByteSub(void) {
@@ -374,8 +499,6 @@ void Rijndael::InvShiftRow(void) {
   }
 }  // InvShiftRow
 
-#define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
-
 void Rijndael::MixColumn(void) {
   // poly32 used here - we hard coded - TODO(unknown) - use defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
@@ -460,26 +583,6 @@ void Rijndael::InvFinalRound(int round) {
   InvByteSub();
 }  // FinalRound
 
-uint32_t Rijndael::RotByte(uint32_t data) {
-  // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
-  return (data << 24) | (data >> 8);
-  // return std::rotr(data, 8);
-  // TODO(unknown) inline with rotr
-}  // RotByte
-
-uint32_t Rijndael::SubByte(uint32_t data) {
-  // does the SBox on this 4 byte data
-  uint32_t result = 0;
-  result = byte_sub[data >> 24];
-  result <<= 8;
-  result |= byte_sub[(data >> 16) & 255];
-  result <<= 8;
-  result |= byte_sub[(data >> 8) & 255];
-  result <<= 8;
-  result |= byte_sub[data & 255];
-  return result;
-}  // SubByte
-
 // Key expansion code - makes local copy
 void Rijndael::KeyExpansion(const unsigned char *key) {
   assert(this->m_Nk > 0);
@@ -542,111 +645,9 @@ void Rijndael::SetParameters(int keylength, int blocklength) {
       parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2) * 4 + 3];
 }  // SetParameters
 
-void DumpCharTable(std::ostream &out, const char *name,
-                   const unsigned char *table,
-                   int length) {  // dump te contents of a table to a file
-  int pos;
-  out << name << std::endl << std::hex;
-  for (pos = 0; pos < length; pos++) {
-    out << "0x";
-    if (table[pos] < 16) {
-      out << '0';
-    }
-    out << static_cast<unsigned int>(table[pos]) << ',';
-    if ((pos % 16) == 15) {
-      out << std::endl;
-    }
-  }
-  out << std::dec;
-}  // DumpCharTable
-
-void DumpLongTable(std::ostream &out, const char *name, const uint32_t *table,
-                   int length) {  // dump te contents of a table to a file
-  int pos;
-  out << name << std::endl << std::hex;
-  for (pos = 0; pos < length; pos++) {
-    out << "0x";
-    if (table[pos] < 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16 * 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16 * 16 * 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16 * 16 * 16 * 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16) {
-      out << '0';
-    }
-    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16 * 16) {
-      out << '0';
-    }
-    out << static_cast<unsigned int>(table[pos]) << ',';
-    if ((pos % 8) == 7) {
-      out << std::endl;
-    }
-  }
-  out << std::dec;
-}  // DumpCharTable
-
-// return true iff tables are valid. create = true fills them in if not
-bool CreateRijndaelTables(bool create, bool create_file) {
-  bool retval = true;
-  if (CheckInverses(create) == false) {
-    retval = false;
-  }
-  if (CheckByteSub(create) == false) {
-    retval = false;
-  }
-  if (CheckInvByteSub(create) == false) {
-    retval = false;
-  }
-  if (CheckRcon(create) == false) {
-    return false;
-  }
-
-  if (create_file == true) {  // dump tables
-    std::ofstream out;
-    out.open("Tables.dat");
-    if (out.is_open() == true) {
-      DumpCharTable(out, "gf2_8_inv", gf2_8_inv, 256);
-      out << "\n\n";
-      DumpCharTable(out, "byte_sub", byte_sub, 256);
-      out << "\n\n";
-      DumpCharTable(out, "inv_byte_sub", inv_byte_sub, 256);
-      out << "\n\n";
-      DumpLongTable(out, "RCon", Rcon, 60);
-      out.close();
-    }
-  }
-  return retval;
-}  // CreateRijndaelTables
-
 void Rijndael::StartEncryption(const unsigned char *key) {
   KeyExpansion(key);
 }  // StartEncryption
-
-void DumpHex(const unsigned char *table,
-             int length) {  // dump some hex values for debugging
-  int pos;
-  std::cerr << std::hex;
-  for (pos = 0; pos < length; pos++) {
-    if (table[pos] < 16) {
-      std::cerr << '0';
-    }
-    std::cerr << static_cast<unsigned int>(table[pos]) << ' ';
-    if ((pos % 16) == 15) {
-      std::cerr << std::endl;
-    }
-  }
-  std::cerr << std::dec;
-}  // DumpHex
 
 void Rijndael::EncryptBlock(const unsigned char *datain1,
                             unsigned char *dataout1,
