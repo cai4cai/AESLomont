@@ -51,4 +51,5 @@ add_executable(aes-test
 # Warnings Compiler Flags
 target_compile_options(aes-test PRIVATE ${MyWarningFlags})
 
+enable_testing()
 add_test(NAME aes-test COMMAND aes-test)
