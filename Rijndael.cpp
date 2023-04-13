@@ -55,9 +55,9 @@ bool tablesInitialized = false;
 // constants defining the algorithm
 int const gf2_8_poly = 0x11B;  // the poly defining the 256 element field
 // poly defining mixing, coeffs usually '03010102'
-// const uint64_t poly32 = 0x03010102;
+// const uint32_t poly32 = 0x03010102;
 // poly inverse, coeffs usually '0B0D090E'
-// const uint64_t poly32_inv = 0x0B0D090E;
+// const uint32_t poly32_inv = 0x0B0D090E;
 
 int const parameters[] = {
     // data in  Nr,C1,C2,C3 form
@@ -144,7 +144,7 @@ unsigned char inv_byte_sub[256] = {
 };
 
 // this table needs Nb*(Nr+1)/Nk entries - up to 8*(15)/4 = 60
-uint64_t Rcon[60] = {
+uint32_t Rcon[60] = {
     // todo -  this table may be stored as bytes or made on the fly
     0x00000000, 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010,
     0x00000020, 0x00000040, 0x00000080, 0x0000001b, 0x00000036, 0x0000006c,
@@ -401,15 +401,15 @@ void Rijndael::InvFinalRound(int round) {
   InvByteSub();
 }  // FinalRound
 
-uint64_t Rijndael::RotByte(uint64_t data) {
+uint32_t Rijndael::RotByte(uint32_t data) {
   // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
   return (data << 24) | (data >> 8);
   // todo inline with rotr
 }  // RotByte
 
-uint64_t Rijndael::SubByte(uint64_t data) {
+uint32_t Rijndael::SubByte(uint32_t data) {
   // does the SBox on this 4 byte data
-  uint64_t result = 0;
+  uint32_t result = 0;
   result = byte_sub[data >> 24];
   result <<= 8;
   result |= byte_sub[(data >> 16) & 255];
@@ -425,7 +425,7 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
   assert(Nk > 0);
   int i;
   // todo not portable - Endian problems
-  uint64_t temp, *Wb = reinterpret_cast<uint64_t *>(W);
+  uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(W);
   if (Nk <= 6) {
     // todo - memcpy
     for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
@@ -490,7 +490,7 @@ void DumpCharTable(std::ostream &out, const char *name,
   out << std::dec;
 }  // DumpCharTable
 
-void DumpLongTable(std::ostream &out, const char *name, const uint64_t *table,
+void DumpLongTable(std::ostream &out, const char *name, const uint32_t *table,
                    int length) {  // dump te contents of a table to a file
   int pos;
   out << name << std::endl << std::hex;
@@ -581,8 +581,8 @@ void DumpHex(const unsigned char *table,
 void Rijndael::EncryptBlock(
     const unsigned char *datain1, unsigned char *dataout1,
     const unsigned char *states) {  // todo ? allow in place encryption
-  const uint64_t *datain = reinterpret_cast<const uint64_t *>(datain1);
-  uint64_t *dataout = reinterpret_cast<uint64_t *>(dataout1);
+  const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
+  uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
   memcpy(state, datain, state_size);
   AddRoundKey(0);
@@ -604,7 +604,7 @@ void Rijndael::EncryptBlock(
 
 // call this to encrypt any size block
 void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
-                       uint64_t numBlocks, BlockMode mode) {
+                       uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
   unsigned int blocksize = Nb * 4;
   switch (mode) {
@@ -643,8 +643,8 @@ void Rijndael::StartDecryption(const unsigned char *key) {
 void Rijndael::DecryptBlock(const unsigned char *datain1,
                             unsigned char *dataout1,
                             const unsigned char *states) {
-  const uint64_t *datain = reinterpret_cast<const uint64_t *>(datain1);
-  uint64_t *dataout = reinterpret_cast<uint64_t *>(dataout1);
+  const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
+  uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
   memcpy(state, datain, state_size);
   InvFinalRound(Nr);
@@ -666,7 +666,7 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
 
 // call this to decrypt any size block
 void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
-                       uint64_t numBlocks, BlockMode mode) {
+                       uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
   unsigned int blocksize = Nb * 4;
   switch (mode) {

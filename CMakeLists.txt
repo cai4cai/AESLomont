@@ -43,13 +43,27 @@ else()
 endif()
 
 
+# AES executable
 add_executable(aes-test
   main.cpp
-  AES.cpp
-  Rijndael.cpp)
+  AES.cpp)
 
 # Warnings Compiler Flags
 target_compile_options(aes-test PRIVATE ${MyWarningFlags})
 
+
+# Rijndael executable
+add_executable(rijndael-test
+  main.cpp
+  Rijndael.cpp)
+
+# Warnings Compiler Flags
+target_compile_options(rijndael-test PRIVATE ${MyWarningFlags})
+
+target_compile_definitions(rijndael-test PRIVATE USE_SLOW_RIJNDAEL)
+
+
+# Add to ctest
 enable_testing()
 add_test(NAME aes-test COMMAND aes-test)
+add_test(NAME rijndael-test COMMAND rijndael-test)

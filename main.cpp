@@ -44,10 +44,10 @@
 #include <iostream>
 
 // define this to test old direct slow method, else remove for fast method
-// #define _SLOW
+// #define USE_SLOW_RIJNDAEL
 #define RANDOM_TEST_COUNT 1000  // how many random tests to do
 
-#ifdef _SLOW
+#ifdef USE_SLOW_RIJNDAEL
 #define AES Rijndael
 #endif
 
@@ -147,7 +147,7 @@ bool TestVector(const test_t& vector, bool use_states) {
   }
 
   crypt.StartEncryption(key);
-#ifdef _SLOW
+#ifdef USE_SLOW_RIJNDAEL
   if (use_states == true) {
     crypt.EncryptBlock(plaintext, temptext, states);
   } else {
@@ -166,7 +166,7 @@ bool TestVector(const test_t& vector, bool use_states) {
   }
 
   crypt.StartDecryption(key);
-#ifdef _SLOW
+#ifdef USE_SLOW_RIJNDAEL
   if (use_states == true) {
     crypt.DecryptBlock(ciphertext, temptext, states);
   } else {
@@ -258,24 +258,7 @@ bool RandomTest(int pos) {
   return true;
 }  // RandomTest
 
-/*
-static __declspec(naked) __int64 GetCounter()
-        { // read time stamp counter in Pentium class CPUs
-        _asm
-                {
-                _emit 0fh
-                _emit 31h
-                ret;
-                }
-        } //
-*/
-static std::time_t GetCounter() {
-  auto const now = std::chrono::system_clock::now();
-  return std::chrono::system_clock::to_time_t(now);
-}
-
 void Timing(int rounds, int keylen, int blocklen) {
-  int64_t start1, end1, start2, end2, overhead;
   unsigned char key[32], plaintext[32], ciphertext[32];
 
   int pos;
@@ -291,30 +274,36 @@ void Timing(int rounds, int keylen, int blocklen) {
     plaintext[pos] = std::rand();
   }
 
-  // find overhead for these
-  start1 = GetCounter();
-  end1 = GetCounter();
-  overhead = end1 - start1;
+  // Find Timing overhead for these
+  // TODO(unknown) get more precise counters
+  auto start1 = std::chrono::steady_clock::now();
+  auto end1 = std::chrono::steady_clock::now();
+  std::chrono::duration<double> overhead = end1 - start1;
 
   crypt.StartEncryption(key);
   int64_t min_e = 1000000;
   double total_e = 0;
   for (pos = 0; pos < rounds; pos++) {
-    start1 = GetCounter();
+    start1 = std::chrono::steady_clock::now();
     crypt.EncryptBlock(plaintext, ciphertext);
-    end1 = GetCounter();
-    total_e += end1 - start1 - overhead;
-    if (min_e > (end1 - start1 - overhead)) {
-      min_e = end1 - start1 - overhead;
+    end1 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> timediff = end1 - start1;
+    const double amortised_timediff =
+        std::chrono::duration_cast<std::chrono::microseconds>(timediff -
+                                                              overhead)
+            .count();
+    total_e += amortised_timediff;
+    if (min_e > amortised_timediff) {
+      min_e = amortised_timediff;
     }
   }
 
-  std::cout << "Min cycles per encryption (key,block): (" << keylen * 8 << ','
-            << blocklen * 8 << ") ";
+  std::cout << "Min microsecs per encryption (key,block): (" << keylen * 8
+            << ',' << blocklen * 8 << ") ";
   std::cout << min_e << std::endl;
 
-  std::cout << "Avg cycles per encryption (key,block): (" << keylen * 8 << ','
-            << blocklen * 8 << ") ";
+  std::cout << "Avg microsecs per encryption (key,block): (" << keylen * 8
+            << ',' << blocklen * 8 << ") ";
   std::cout << total_e / rounds << std::endl;
 
   crypt.StartDecryption(key);
@@ -322,21 +311,24 @@ void Timing(int rounds, int keylen, int blocklen) {
   double total_d = 0;
 
   for (pos = 0; pos < rounds; pos++) {
-    start2 = GetCounter();
+    start1 = std::chrono::steady_clock::now();
     crypt.DecryptBlock(plaintext, ciphertext);
-    end2 = GetCounter();
-    total_d += end2 - start2 - overhead;
-    if (min_d > (end2 - start2 - overhead)) {
-      min_d = end2 - start2 - overhead;
+    end1 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> timediff = end1 - start1;
+    const double amortised_timediff =
+        std::chrono::duration_cast<std::chrono::microseconds>(timediff -
+                                                              overhead)
+            .count();
+    total_d += amortised_timediff;
+    if (min_d > amortised_timediff) {
+      min_d = amortised_timediff;
     }
   }
 
-  std::cout << "Min cycles per decryption (key,block): (" << keylen * 8 << ','
-            << blocklen * 8 << ") ";
-  std::cout << min_d << std::endl;
-  std::cout << "Avg cycles per decryption (key,block): (" << keylen * 8 << ','
-            << blocklen * 8 << ") ";
-  std::cout << total_d / rounds << std::endl;
+  std::cout << "Min microsecs per decryption (key,block): (" << keylen * 8
+            << ',' << blocklen * 8 << ") " << min_d << std::endl;
+  std::cout << "Avg microsecs per decryption (key,block): (" << keylen * 8
+            << ',' << blocklen * 8 << ") " << total_d / rounds << std::endl;
 }  // Timing
 
 // test a file encryption
@@ -375,6 +367,12 @@ void AESEncryptFile(const char* fname) {
 }  // AESEncryptFile
 
 int main(void) {
+#ifdef USE_SLOW_RIJNDAEL
+  std::cout << "Running slow Rijndael test" << std::endl;
+#else
+  std::cout << "Running AES test" << std::endl;
+#endif
+
 #ifdef _WIN32
   // to try to prevent windows from interfering too much
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
@@ -391,8 +389,11 @@ int main(void) {
   allPassed &= TestVector(vectors[4], false);
 
   // check a bunch of timings for different key and block sizes
-  for (int block = 16; block <= 32; block += 8)
-    for (int key = 16; key <= 32; key += 8) Timing(100000, key, block);
+  for (int block = 16; block <= 32; block += 8) {
+    for (int key = 16; key <= 32; key += 8) {
+      Timing(100000, key, block);
+    }
+  }
 
   // this is to randomly test data
   srand(0);  // make reproducible

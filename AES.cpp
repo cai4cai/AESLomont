@@ -65,29 +65,29 @@ unsigned char inv_byte_sub[256];
 
 // this table needs Nb*(Nr+1)/Nk entries - up to 8*(15)/4 = 60
 // TODO(unknown) - remove table, note cycles every 17(?) elements
-uint64_t Rcon[60];
+uint32_t Rcon[60];
 
 // long tables for encryption stuff
-uint64_t T0[256];
-uint64_t T1[256];
-uint64_t T2[256];
-uint64_t T3[256];
+uint32_t T0[256];
+uint32_t T1[256];
+uint32_t T2[256];
+uint32_t T3[256];
 
 // long tables for decryption stuff
-uint64_t I0[256];
-uint64_t I1[256];
-uint64_t I2[256];
-uint64_t I3[256];
+uint32_t I0[256];
+uint32_t I1[256];
+uint32_t I2[256];
+uint32_t I3[256];
 
 // huge tables - TODO(unknown) - ifdef out
-uint64_t T4[256];
-uint64_t T5[256];
-uint64_t T6[256];
-uint64_t T7[256];
-uint64_t I4[256];
-uint64_t I5[256];
-uint64_t I6[256];
-uint64_t I7[256];
+uint32_t T4[256];
+uint32_t T5[256];
+uint32_t T6[256];
+uint32_t T7[256];
+uint32_t I4[256];
+uint32_t I5[256];
+uint32_t I6[256];
+uint32_t I7[256];
 
 // have the tables been initialized?
 bool tablesInitialized = false;
@@ -98,8 +98,8 @@ bool tablesInitialized = false;
 
 // make 4 bytes (LSB first) into a 4 byte vector
 #define VEC4(a, b, c, d)                                         \
-  static_cast<uint64_t>(((int64_t)(a)) | (((int64_t)(b)) << 8) | \
-                        (((int64_t)(c)) << 16) | (((int64_t)(d)) << 24))
+  static_cast<uint32_t>(((int32_t)(a)) | (((int32_t)(b)) << 8) | \
+                        (((int32_t)(c)) << 16) | (((int32_t)(d)) << 24))
 
 // get byte 0 to 3 from word a
 #define GetByte(a, n) ((unsigned char)((a) >> (n << 3)))
@@ -477,8 +477,8 @@ bool CheckRcon(bool create) {
   compute_one_final_inv(d, s, 6, 1, 3, 4, 8); \
   compute_one_final_inv(d, s, 7, 1, 3, 4, 8);
 
-uint64_t SubByte(uint64_t data) {  // does the SBox on this 4 byte data
-  uint64_t result = 0;
+uint32_t SubByte(uint32_t data) {  // does the SBox on this 4 byte data
+  uint32_t result = 0;
   result = byte_sub[data >> 24];
   result <<= 8;
   result |= byte_sub[(data >> 16) & 255];
@@ -507,7 +507,7 @@ void DumpCharTable(std::ostream& out, const char* name,
   out << std::dec;
 }  // DumpCharTable
 
-void DumpLongTable(std::ostream& out, const char* name, const uint64_t* table,
+void DumpLongTable(std::ostream& out, const char* name, const uint32_t* table,
                    int length) {  // dump te contents of a table to a file
   int pos;
   out << name << std::endl << std::hex;
@@ -608,7 +608,7 @@ void AES::KeyExpansion(const unsigned char* key) {
   assert(Nk > 0);
   int i;
   // TODO(unknown) not portable - Endian problems
-  uint64_t temp, *Wb = reinterpret_cast<uint64_t*>(W);
+  uint32_t temp, *Wb = reinterpret_cast<uint32_t*>(W);
   if (Nk <= 6) {
     // TODO(unknown) - memcpy
     for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
@@ -662,12 +662,12 @@ void AES::EncryptBlock(
                                 // TODO(unknown) - clean up - lots of repeated
                                 // macros we only encrypt one block from now on
 
-  uint64_t state[8 * 2];  // 2 buffers
-  uint64_t* r_ptr = reinterpret_cast<uint64_t*>(W);
-  uint64_t* dest = state;
-  uint64_t* src = state;
-  const uint64_t* datain = reinterpret_cast<const uint64_t*>(datain1);
-  uint64_t* dataout = reinterpret_cast<uint64_t*>(dataout1);
+  uint32_t state[8 * 2];  // 2 buffers
+  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(W);
+  uint32_t* dest = state;
+  uint32_t* src = state;
+  const uint32_t* datain = reinterpret_cast<const uint32_t*>(datain1);
+  uint32_t* dataout = reinterpret_cast<uint32_t*>(dataout1);
 
   if (Nb == 4) {
     AddRoundKey4(dest, datain);
@@ -737,7 +737,7 @@ void AES::EncryptBlock(
 
 // call this to encrypt any size block
 void AES::Encrypt(const unsigned char* datain, unsigned char* dataout,
-                  uint64_t numBlocks, BlockMode mode) {
+                  uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) {
     return;
   }
@@ -802,7 +802,7 @@ void AES::StartDecryption(const unsigned char* key) {
   }
 
   // we reverse the rounds to make decryption faster
-  uint64_t* WL = reinterpret_cast<uint64_t*>(W);
+  uint32_t* WL = reinterpret_cast<uint32_t*>(W);
   for (int pos = 0; pos < Nr / 2; pos++) {
     for (int col = 0; col < Nb; col++) {
       std::swap(WL[col + pos * Nb], WL[col + (Nr - pos) * Nb]);
@@ -811,13 +811,13 @@ void AES::StartDecryption(const unsigned char* key) {
 }  // StartDecryption
 
 void AES::DecryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
-  uint64_t state[8 * 2];  // 2 buffers
-  uint64_t* r_ptr = reinterpret_cast<uint64_t*>(W);
-  uint64_t* dest = state;
-  uint64_t* src = state;
+  uint32_t state[8 * 2];  // 2 buffers
+  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(W);
+  uint32_t* dest = state;
+  uint32_t* src = state;
 
-  const uint64_t* datain = reinterpret_cast<const uint64_t*>(datain1);
-  uint64_t* dataout = reinterpret_cast<uint64_t*>(dataout1);
+  const uint32_t* datain = reinterpret_cast<const uint32_t*>(datain1);
+  uint32_t* dataout = reinterpret_cast<uint32_t*>(dataout1);
 
   if (Nb == 4) {
     AddRoundKey4(dest, datain);
@@ -887,7 +887,7 @@ void AES::DecryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
 
 // call this to decrypt any size block
 void AES::Decrypt(const unsigned char* datain, unsigned char* dataout,
-                  uint64_t numBlocks, BlockMode mode) {
+                  uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
   unsigned int blocksize = Nb * 4;
   switch (mode) {
