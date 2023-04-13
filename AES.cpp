@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
+#include <bit>
 
 // todo - make faster 128 blocksize version with 128 blocksize hardcoded as necessary
 
@@ -92,16 +93,45 @@ bool tablesInitialized = false;
 #define xmult(a) ((a)<<1) ^ (((a)&128) ? 0x01B : 0)
 
 // make 4 bytes (LSB first) into a 4 byte vector
-#define VEC4(a,b,c,d) (((long)(a)) | (((long)(b))<<8) | (((long)(c))<<16) | (((long)(d))<<24))
+#define VEC4(a,b,c,d) static_cast<unsigned long>(((long)(a)) | (((long)(b))<<8) | (((long)(c))<<16) | (((long)(d))<<24))
 
 // get byte 0 to 3 from word a
 #define GetByte(a,n) ((unsigned char)((a) >> (n<<3)))
 
 //	bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
-#define RotByte(a) _rotr(a,8)
+#if __cplusplus >= 202002L // C++20 (and later) code
+#define RotByte(a) std::rotr(a,8)
+#define RotByteL(a) std::rotl(a,8)
+#else
+template <typename T> T RotByte(T a)
+	{
+	static_assert(std::is_integral<T>::value, "rotate of non-integral type");
+	static_assert(! std::is_signed<T>::value, "rotate of signed type");
+	constexpr unsigned int num_bits {std::numeric_limits<T>::digits};
+	static_assert(0 == (num_bits & (num_bits - 1)), "rotate value bit length not power of two");
+	constexpr unsigned int count_mask {num_bits - 1};
+	const unsigned int mb {8 & count_mask};
+	using promoted_type = typename std::common_type<int, T>::type;
+	using unsigned_promoted_type = typename std::make_unsigned<promoted_type>::type;
+	return ((unsigned_promoted_type{a} >> mb)
+        	| (unsigned_promoted_type{a} << (-mb & count_mask)));
+	}
 
-#define RotByteL(a) _rotl(a,8)
-
+template <typename T> T RotByteL(T a)
+	{
+	static_assert(std::is_integral<T>::value, "rotate of non-integral type");
+	static_assert(! std::is_signed<T>::value, "rotate of signed type");
+	constexpr unsigned int num_bits {std::numeric_limits<T>::digits};
+	static_assert(0 == (num_bits & (num_bits - 1)), "rotate value bit length not power of two");
+	constexpr unsigned int count_mask {num_bits - 1};
+	const unsigned int mb {8 & count_mask};
+	using promoted_type = typename std::common_type<int, T>::type;
+	using unsigned_promoted_type = typename std::make_unsigned<promoted_type>::type;
+	return ((unsigned_promoted_type{a} << mb)
+		| (unsigned_promoted_type{a} >> (-mb & count_mask)));
+}
+#endif
+ 
 // mult 2 elements using gf2_8_poly as a reduction
 inline unsigned char GF2_8_mult(unsigned char a, unsigned char b)
 	{ // todo - make 4x4 table for nibbles, use lookup
@@ -291,7 +321,7 @@ bool CheckRcon(bool create)
 		Rcon[0] = 0;
 	else if (Rcon[0] != 0)
 		return false; // todo - this is unused still check?
-	for (int i = 1; i < sizeof(Rcon)/sizeof(Rcon[0])-1; i++)
+	for (unsigned int i = 1; i < sizeof(Rcon)/sizeof(Rcon[0])-1; i++)
 		{
 		if (create == true)
 			Rcon[i] = Ri;
@@ -570,6 +600,7 @@ bool CreateAESTables(bool create, bool create_file)
 	return retval;
 	} // CreateAESTables
 
+[[maybe_unused]]
 void DumpHex(const unsigned char * table, int length)
 	{ // dump some hex values for debugging
 	int pos;

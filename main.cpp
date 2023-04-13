@@ -55,11 +55,11 @@ using namespace std;
 
 typedef struct
 	{
-	char * key;
-	char * plaintext;
-	char * ciphertext;
-	char * e_vectors[9];
-	char * d_vectors[9];
+	const char * key;
+	const char * plaintext;
+	const char * ciphertext;
+	const char * e_vectors[9];
+	const char * d_vectors[9];
 	} test_t;
 
 // todo - add all checks from the NIST document in the header comment
@@ -256,6 +256,7 @@ bool RandomTest(int pos)
 	return true;
 	} // RandomTest
 
+/*
 static __declspec(naked) __int64 GetCounter()
 	{ // read time stamp counter in Pentium class CPUs
 	_asm
@@ -264,12 +265,18 @@ static __declspec(naked) __int64 GetCounter()
 		_emit 31h
 		ret;
 		}
-	} // 
+	} //
+*/
+static std::time_t GetCounter()
+	{
+	auto const now = std::chrono::system_clock::now();
+	return std::chrono::system_clock::to_time_t(now);
+	}
 
 void Timing(int rounds, int keylen, int blocklen)
 	{
 
-	__int64 start1, end1, start2, end2, overhead;
+	int64_t start1, end1, start2, end2, overhead;
 	unsigned char key[32],plaintext[32],ciphertext[32];
 
 	int pos;
@@ -289,7 +296,7 @@ void Timing(int rounds, int keylen, int blocklen)
 	overhead = end1 - start1;
 
 	crypt.StartEncryption(key);
-	unsigned long min_e = 1000000;
+	long min_e = 1000000;
 	double total_e = 0;
 	for (pos = 0; pos < rounds; pos++)
 		{
@@ -298,7 +305,7 @@ void Timing(int rounds, int keylen, int blocklen)
 		end1   = GetCounter();
 		total_e += end1-start1-overhead;
 		if (min_e > (end1-start1-overhead))
-			min_e = static_cast<unsigned long>(end1-start1-overhead);
+			min_e = static_cast<long>(end1-start1-overhead);
 		}
 
 	cout << "Min cycles per encryption (key,block): (" << keylen*8 << ',' << blocklen*8 << ") ";
@@ -309,7 +316,7 @@ void Timing(int rounds, int keylen, int blocklen)
 
 
 	crypt.StartDecryption(key);
-	unsigned long min_d = 1000000;
+	long min_d = 1000000;
 	double total_d = 0;
 
 	for (pos = 0; pos < rounds; pos++)
@@ -319,7 +326,7 @@ void Timing(int rounds, int keylen, int blocklen)
 		end2   = GetCounter();
 		total_d += end2-start2-overhead;
 		if (min_d > (end2-start2-overhead))
-			min_d = static_cast<unsigned long>(end2-start2-overhead);
+			min_d = static_cast<long>(end2-start2-overhead);
 		}
 
 	cout << "Min cycles per decryption (key,block): (" << keylen*8 << ',' << blocklen*8 << ") ";
@@ -351,7 +358,7 @@ void AESEncryptFile(const char * fname)
 	crypt.SetParameters(192);
 	// random key good enough
 	unsigned char key[192/8];
-	for (int pos = 0; pos < sizeof(key); ++pos)
+	for (size_t pos = 0; pos < sizeof(key); ++pos)
 		key[pos] = rand();
 	crypt.StartEncryption(key);
 	crypt.Encrypt(reinterpret_cast<const unsigned char*>(ibuffer),reinterpret_cast<unsigned char*>(obuffer),size/16);

@@ -55,9 +55,9 @@ bool tablesInitialized = false;
 // constants defining the algorithm
 int const gf2_8_poly = 0x11B; // the poly defining the 256 element field
 // poly defining mixing, coeffs usually '03010102'
-const unsigned long poly32 = 0x03010102; 
+// const unsigned long poly32 = 0x03010102; 
 // poly inverse, coeffs usually '0B0D090E'
-const unsigned long poly32_inv = 0x0B0D090E; 
+// const unsigned long poly32_inv = 0x0B0D090E; 
 
 int const parameters[] = { // data in  Nr,C1,C2,C3 form
 //Nk*32 128         192         256
@@ -252,7 +252,7 @@ bool CheckRcon(bool create)
 		Rcon[0] = 0;
 	else if (Rcon[0] != 0)
 		return false; // todo - this is unused still check?
-	for (int i = 1; i < sizeof(Rcon)/sizeof(Rcon[0])-1; i++)
+	for (unsigned int i = 1; i < sizeof(Rcon)/sizeof(Rcon[0])-1; i++)
 		{
 		if (create == true)
 			Rcon[i] = Ri;
