@@ -35,7 +35,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include <assert.h>
+#include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
