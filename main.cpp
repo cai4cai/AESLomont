@@ -407,15 +407,16 @@ int main(void) {
     if (passed == false) std::cerr << "Random Test " << pos << " failed\n";
   }
 
-  if (false == allPassed)
-    std::cerr << "ERROR: Some test(s) failed\n";
-  else
-    std::cout << "PASSED: All tests passed\n";
-
   // test a file encryption
   // AESEncryptFile("main.cpp");
 
-  return 0;
+  if (false == allPassed) {
+    std::cerr << "ERROR: Some test(s) failed\n";
+    return EXIT_FAILURE;
+  } else {
+    std::cout << "PASSED: All tests passed\n";
+    return EXIT_SUCCESS;
+  }
 }  // main
 
 // end - main.cpp

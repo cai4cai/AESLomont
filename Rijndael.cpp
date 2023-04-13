@@ -716,10 +716,12 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
 // call this to decrypt any size block
 void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
                        uint32_t numBlocks, BlockMode mode) {
-  if (0 == numBlocks) return;
+  if (0 == numBlocks) {
+    return;
+  }
   unsigned int blocksize = Nb * 4;
   switch (mode) {
-    case ECB:
+    case ECB: {
       while (numBlocks) {
         DecryptBlock(datain, dataout);
         datain += blocksize;
@@ -727,36 +729,43 @@ void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
         --numBlocks;
       }
       break;
+    }
     case CBC: {
       unsigned char buffer[64];
-      std::memset(
-          buffer, 0,
-          sizeof(buffer));  // clear out - todo - allow setting the
-                            // Initialization Vector - needed for security
+      std::memset(buffer, 0,
+                  sizeof(buffer));  // clear out - todo - allow setting the
+      // Initialization Vector - needed for security
       DecryptBlock(datain, dataout);  // do first block
-      for (unsigned int pos = 0; pos < blocksize; ++pos)
+      for (unsigned int pos = 0; pos < blocksize; ++pos) {
         *dataout++ ^= buffer[pos];
+      }
       datain += blocksize;
       numBlocks--;
 
       while (numBlocks) {
         DecryptBlock(datain, dataout);  // do first block
-        for (unsigned int pos = 0; pos < blocksize; ++pos)
+        for (unsigned int pos = 0; pos < blocksize; ++pos) {
           *dataout++ ^= *(datain - blocksize + pos);
+        }
         datain += blocksize;
         --numBlocks;
       }
-    } break;
-    default:
+      break;
+    }
+    default: {
       assert(!"Unknown mode!");
+    }
   }
 }  // Decrypt
 
 // the constructor - makes sure local things are initialized
 Rijndael::Rijndael(void) {
-  if (false == tablesInitialized)
+  if (false == tablesInitialized) {
     tablesInitialized = CreateRijndaelTables(true, false);
-  if (false == tablesInitialized) throw "Tables failed to initialize";
+  }
+  if (false == tablesInitialized) {
+    throw "Tables failed to initialize";
+  }
 }
 
 // end - Rijndael.cpp
