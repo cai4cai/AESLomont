@@ -588,15 +588,18 @@ bool CreateAESTables(bool create, bool create_file) {
   return retval;
 }  // CreateAESTables
 
-[[maybe_unused]] void DumpHex(
-    const unsigned char* table,
-    int length) {  // dump some hex values for debugging
+[[maybe_unused]] void DumpHex(const unsigned char* table, int length) {
+  // dump some hex values for debugging
   int pos;
   std::cerr << std::hex;
   for (pos = 0; pos < length; pos++) {
-    if (table[pos] < 16) std::cerr << '0';
+    if (table[pos] < 16) {
+      std::cerr << '0';
+    }
     std::cerr << static_cast<unsigned int>(table[pos]) << ' ';
-    if ((pos % 16) == 15) std::cerr << std::endl;
+    if ((pos % 16) == 15) {
+      std::cerr << std::endl;
+    }
   }
   std::cerr << std::dec;
 }  // DumpHex
@@ -605,39 +608,48 @@ bool CreateAESTables(bool create, bool create_file) {
 
 // Key expansion code - makes local copy
 void AES::KeyExpansion(const unsigned char* key) {
-  assert(Nk > 0);
+  assert(this->m_Nk > 0);
   int i;
   // TODO(unknown) not portable - Endian problems
-  uint32_t temp, *Wb = reinterpret_cast<uint32_t*>(W);
-  if (Nk <= 6) {
+  uint32_t temp, *Wb = reinterpret_cast<uint32_t*>(this->m_W);
+  if (this->m_Nk <= 6) {
     // TODO(unknown) - memcpy
-    for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
-    for (i = Nk; i < Nb * (Nr + 1); i++) {
+    for (i = 0; i < 4 * this->m_Nk; i++) {
+      this->m_W[i] = key[i];
+    }
+    for (i = this->m_Nk; i < this->m_Nb * (this->m_Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0) temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
-      Wb[i] = Wb[i - Nk] ^ temp;
+      if ((i % this->m_Nk) == 0) {
+        temp = SubByte(RotByte(temp)) ^ Rcon[i / this->m_Nk];
+      }
+      Wb[i] = Wb[i - this->m_Nk] ^ temp;
     }
   } else {
     // TODO(unknown) - memcpy
-    for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
-    for (i = Nk; i < Nb * (Nr + 1); i++) {
+    for (i = 0; i < 4 * this->m_Nk; i++) {
+      this->m_W[i] = key[i];
+    }
+    for (i = this->m_Nk; i < this->m_Nb * (this->m_Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0)
-        temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
-      else if ((i % Nk) == 4)
+      if ((i % this->m_Nk) == 0) {
+        temp = SubByte(RotByte(temp)) ^ Rcon[i / this->m_Nk];
+      } else if ((i % this->m_Nk) == 4) {
         temp = SubByte(temp);
-      Wb[i] = Wb[i - Nk] ^ temp;
+      }
+      Wb[i] = Wb[i - this->m_Nk] ^ temp;
     }
   }
 }  // KeyExpansion
 
 void AES::SetParameters(int keylength, int blocklength) {
-  Nk = Nr = Nb = 0;  // default values
+  this->m_Nk = this->m_Nr = this->m_Nb = 0;  // default values
 
-  if ((keylength != 128) && (keylength != 192) && (keylength != 256))
+  if ((keylength != 128) && (keylength != 192) && (keylength != 256)) {
     return;  // nothing - TODO(unknown) - throw error?
-  if ((blocklength != 128) && (blocklength != 192) && (blocklength != 256))
+  }
+  if ((blocklength != 128) && (blocklength != 192) && (blocklength != 256)) {
     return;  // nothing - TODO(unknown) - throw error?
+  }
 
   static int const parameters[] = {
       // Nk*32 128     192     256
@@ -647,37 +659,36 @@ void AES::SetParameters(int keylength, int blocklength) {
   };
 
   // legal parameters, so fire it up
-  Nk = keylength / 32;
-  Nb = blocklength / 32;
-  Nr = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2)];
+  this->m_Nk = keylength / 32;
+  this->m_Nb = blocklength / 32;
+  this->m_Nr = parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2)];
 }  // SetParameters
 
 void AES::StartEncryption(const unsigned char* key) {
   KeyExpansion(key);
 }  // StartEncryption
 
-void AES::EncryptBlock(
-    const unsigned char* datain1,
-    unsigned char* dataout1) {  // TODO(unknown) ? allow in place encryption
-                                // TODO(unknown) - clean up - lots of repeated
-                                // macros we only encrypt one block from now on
+void AES::EncryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
+  // TODO(unknown) ? allow in place encryption
+  // TODO(unknown) - clean up - lots of repeated
+  // macros we only encrypt one block from now on
 
   uint32_t state[8 * 2];  // 2 buffers
-  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(W);
+  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(this->m_W);
   uint32_t* dest = state;
   uint32_t* src = state;
   const uint32_t* datain = reinterpret_cast<const uint32_t*>(datain1);
   uint32_t* dataout = reinterpret_cast<uint32_t*>(dataout1);
 
-  if (Nb == 4) {
+  if (this->m_Nb == 4) {
     AddRoundKey4(dest, datain);
 
-    if (Nr == 14) {
+    if (this->m_Nr == 14) {
       Round4(dest, src);
       Round4(src, dest);
       Round4(dest, src);
       Round4(src, dest);
-    } else if (Nr == 12) {
+    } else if (this->m_Nr == 12) {
       Round4(dest, src);
       Round4(src, dest);
     }
@@ -693,10 +704,10 @@ void AES::EncryptBlock(
     Round4(dest, src);
 
     FinalRound4(dataout, dest);
-  } else if (Nb == 6) {
+  } else if (this->m_Nb == 6) {
     AddRoundKey6(dest, datain);
 
-    if (Nr == 14) {
+    if (this->m_Nr == 14) {
       Round6(dest, src);
       Round6(src, dest);
     }
@@ -741,7 +752,7 @@ void AES::Encrypt(const unsigned char* datain, unsigned char* dataout,
   if (0 == numBlocks) {
     return;
   }
-  unsigned int blocksize = Nb * 4;
+  unsigned int blocksize = this->m_Nb * 4;
   switch (mode) {
     case ECB: {
       while (numBlocks) {
@@ -777,10 +788,10 @@ void AES::Encrypt(const unsigned char* datain, unsigned char* dataout,
 void AES::StartDecryption(const unsigned char* key) {
   KeyExpansion(key);
 
-  unsigned char a0, a1, a2, a3, b0, b1, b2, b3, *W_ptr = W;
+  unsigned char a0, a1, a2, a3, b0, b1, b2, b3, *W_ptr = this->m_W;
 
   // do all but first and last round
-  for (int col = Nb; col < (Nr)*Nb; col++) {
+  for (int col = this->m_Nb; col < (this->m_Nr) * this->m_Nb; col++) {
     a0 = W_ptr[4 * col + 0];
     a1 = W_ptr[4 * col + 1];
     a2 = W_ptr[4 * col + 2];
@@ -802,32 +813,33 @@ void AES::StartDecryption(const unsigned char* key) {
   }
 
   // we reverse the rounds to make decryption faster
-  uint32_t* WL = reinterpret_cast<uint32_t*>(W);
-  for (int pos = 0; pos < Nr / 2; pos++) {
-    for (int col = 0; col < Nb; col++) {
-      std::swap(WL[col + pos * Nb], WL[col + (Nr - pos) * Nb]);
+  uint32_t* WL = reinterpret_cast<uint32_t*>(this->m_W);
+  for (int pos = 0; pos < this->m_Nr / 2; pos++) {
+    for (int col = 0; col < this->m_Nb; col++) {
+      std::swap(WL[col + pos * this->m_Nb],
+                WL[col + (this->m_Nr - pos) * this->m_Nb]);
     }
   }
 }  // StartDecryption
 
 void AES::DecryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
   uint32_t state[8 * 2];  // 2 buffers
-  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(W);
+  uint32_t* r_ptr = reinterpret_cast<uint32_t*>(this->m_W);
   uint32_t* dest = state;
   uint32_t* src = state;
 
   const uint32_t* datain = reinterpret_cast<const uint32_t*>(datain1);
   uint32_t* dataout = reinterpret_cast<uint32_t*>(dataout1);
 
-  if (Nb == 4) {
+  if (this->m_Nb == 4) {
     AddRoundKey4(dest, datain);
 
-    if (Nr == 14) {
+    if (this->m_Nr == 14) {
       InvRound4(dest, src);
       InvRound4(src, dest);
       InvRound4(dest, src);
       InvRound4(src, dest);
-    } else if (Nr == 12) {
+    } else if (this->m_Nr == 12) {
       InvRound4(dest, src);
       InvRound4(src, dest);
     }
@@ -843,10 +855,10 @@ void AES::DecryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
     InvRound4(dest, src);
 
     InvFinalRound4(dataout, dest);
-  } else if (Nb == 6) {
+  } else if (this->m_Nb == 6) {
     AddRoundKey6(dest, datain);
 
-    if (Nr == 14) {
+    if (this->m_Nr == 14) {
       InvRound6(dest, src);
       InvRound6(src, dest);
     }
@@ -889,7 +901,7 @@ void AES::DecryptBlock(const unsigned char* datain1, unsigned char* dataout1) {
 void AES::Decrypt(const unsigned char* datain, unsigned char* dataout,
                   uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
-  unsigned int blocksize = Nb * 4;
+  unsigned int blocksize = this->m_Nb * 4;
   switch (mode) {
     case ECB:
       while (numBlocks) {

@@ -106,10 +106,10 @@ class AES {
                uint32_t numBlocks, BlockMode mode = CBC);
 
  private:
-  int Nb, Nk;  // block and key length / 32, should be 4,6,or 8
-  int Nr;      // number of rounds
+  int m_Nb, m_Nk;  // block and key length / 32, should be 4,6,or 8
+  int m_Nr;      // number of rounds
 
-  unsigned char W[4 * 8 * 15];  // the expanded key
+  unsigned char m_W[4 * 8 * 15];  // the expanded key
 
   // Key expansion code - makes local copy
   void KeyExpansion(const unsigned char* key);

@@ -189,18 +189,22 @@ bool CheckInverses(bool create) {
   assert(GF2_8_mult(0xFF, 0x55) == 0xF8);
 
   unsigned int a, b;  // need int here to prevent wraps in loop
-  if (create == true)
+  if (create == true) {
     const_cast<unsigned char *>(gf2_8_inv)[0] = 0;
-  else if (gf2_8_inv[0] != 0)
+  } else if (gf2_8_inv[0] != 0) {
     return false;
+  }
   for (a = 1; a <= 255; a++) {
     b = 1;
-    while (GF2_8_mult(a, b) != 1) b++;
+    while (GF2_8_mult(a, b) != 1) {
+      b++;
+    }
 
-    if (create == true)
+    if (create == true) {
       const_cast<unsigned char *>(gf2_8_inv)[a] = b;
-    else if (gf2_8_inv[a] != b)
+    } else if (gf2_8_inv[a] != b) {
       return false;
+    }
   }
   return true;
 }  // CheckInverses
@@ -212,8 +216,9 @@ unsigned char BitSum(unsigned char byte) {  // return the sum of bits mod 2
 }  // BitSum
 
 bool CheckByteSub(bool create) {
-  if (CheckInverses(create) == false)
+  if (CheckInverses(create) == false) {
     return false;  // we cannot do this without inverses
+  }
 
   unsigned int x, y;  // need ints here to prevent wrap in loop
   for (x = 0; x <= 255; x++) {
@@ -225,29 +230,35 @@ bool CheckByteSub(bool create) {
         (BitSum(y & 0x3E) << 5) | (BitSum(y & 0x7C) << 6) |
         (BitSum(y & 0xF8) << 7);
     y = y ^ 0x63;
-    if (create == true)
+    if (create == true) {
       const_cast<unsigned char *>(byte_sub)[x] = y;
-    else if (byte_sub[x] != y)
+    } else if (byte_sub[x] != y) {
       return false;
+    }
   }
   return true;
 }  // CheckByteSub
 
 bool CheckInvByteSub(bool create) {
-  if (CheckInverses(create) == false)
+  if (CheckInverses(create) == false) {
     return false;  // we cannot do this without inverses
-  if (CheckByteSub(create) == false)
+  }
+  if (CheckByteSub(create) == false) {
     return false;  // we cannot do this without byte_sub
+  }
 
   unsigned int x, y;  // need ints here to prevent wrap in loop
   for (x = 0; x <= 255; x++) {
     // we brute force it...
     y = 0;
-    while (byte_sub[y] != x) y++;
-    if (create == true)
+    while (byte_sub[y] != x) {
+      y++;
+    }
+    if (create == true) {
       const_cast<unsigned char *>(inv_byte_sub)[x] = y;
-    else if (inv_byte_sub[x] != y)
+    } else if (inv_byte_sub[x] != y) {
       return false;
+    }
   }
   return true;
 }  // CheckInvByteSub
@@ -274,14 +285,14 @@ bool CheckRcon(bool create) {
 
 // the transforms
 void Rijndael::ByteSub(void) {
-  for (int pos = 0; pos < state_size; pos++) {
-    state[pos] = byte_sub[state[pos]];
+  for (int pos = 0; pos < this->m_state_size; pos++) {
+    this->m_state[pos] = byte_sub[this->m_state[pos]];
   }
 }  // ByteSub
 
 void Rijndael::InvByteSub(void) {
-  unsigned char *s = state;
-  for (int pos = 0; pos < state_size; pos++) {
+  unsigned char *s = this->m_state;
+  for (int pos = 0; pos < this->m_state_size; pos++) {
     *s = inv_byte_sub[*(s + 1)];
   }
 }  // InvByteSub
@@ -291,34 +302,37 @@ void Rijndael::ShiftRow(void) {
   int i, j;
 
   // copy out row, then copy back 2 pieces shifted
-  for (j = 0, i = 1; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
+  for (j = 0, i = 1; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
   }
-  for (j = C1, i = 1; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = this->m_C1, i = 1; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
-  for (j = 0, i = 1 + 4 * (Nb - C1); j < C1; i += 4, j++) {
-    state[i] = arr[j];
-  }
-
-  for (j = 0, i = 2; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
-  }
-  for (j = C2, i = 2; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
-  }
-  for (j = 0, i = 2 + 4 * (Nb - C2); j < C2; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = 0, i = 1 + 4 * (this->m_Nb - this->m_C1); j < this->m_C1;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
 
-  for (j = 0, i = 3; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
+  for (j = 0, i = 2; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
   }
-  for (j = C3, i = 3; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = this->m_C2, i = 2; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
-  for (j = 0, i = 3 + 4 * (Nb - C3); j < C3; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = 0, i = 2 + 4 * (this->m_Nb - this->m_C2); j < this->m_C2;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
+  }
+
+  for (j = 0, i = 3; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
+  }
+  for (j = this->m_C3, i = 3; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
+  }
+  for (j = 0, i = 3 + 4 * (this->m_Nb - this->m_C3); j < this->m_C3;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
 }  // ShiftRow
 
@@ -326,34 +340,37 @@ void Rijndael::InvShiftRow(void) {
   unsigned char arr[10];
   int i, j;
 
-  for (j = 0, i = 1; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
+  for (j = 0, i = 1; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
   }
-  for (j = Nb - C1, i = 1; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = this->m_Nb - this->m_C1, i = 1; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
-  for (j = 0, i = 1 + 4 * C1; j < Nb - C1; i += 4, j++) {
-    state[i] = arr[j];
-  }
-
-  for (j = 0, i = 2; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
-  }
-  for (j = Nb - C2, i = 2; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
-  }
-  for (j = 0, i = 2 + 4 * C2; j < Nb - C2; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = 0, i = 1 + 4 * this->m_C1; j < this->m_Nb - this->m_C1;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
 
-  for (j = 0, i = 3; j < Nb; i += 4, j++) {
-    arr[j] = state[i];
+  for (j = 0, i = 2; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
   }
-  for (j = Nb - C3, i = 3; j < Nb; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = this->m_Nb - this->m_C2, i = 2; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
-  for (j = 0, i = 3 + 4 * C3; j < Nb - C3; i += 4, j++) {
-    state[i] = arr[j];
+  for (j = 0, i = 2 + 4 * this->m_C2; j < this->m_Nb - this->m_C2;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
+  }
+
+  for (j = 0, i = 3; j < this->m_Nb; i += 4, j++) {
+    arr[j] = this->m_state[i];
+  }
+  for (j = this->m_Nb - this->m_C3, i = 3; j < this->m_Nb; i += 4, j++) {
+    this->m_state[i] = arr[j];
+  }
+  for (j = 0, i = 3 + 4 * this->m_C3; j < this->m_Nb - this->m_C3;
+       i += 4, j++) {
+    this->m_state[i] = arr[j];
   }
 }  // InvShiftRow
 
@@ -362,11 +379,11 @@ void Rijndael::InvShiftRow(void) {
 void Rijndael::MixColumn(void) {
   // poly32 used here - we hard coded - todo - use defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
-  for (int col = 0; col < Nb; col++) {
-    a0 = state[col * 4 + 0];
-    a1 = state[col * 4 + 1];
-    a2 = state[col * 4 + 2];
-    a3 = state[col * 4 + 3];
+  for (int col = 0; col < this->m_Nb; col++) {
+    a0 = this->m_state[col * 4 + 0];
+    a1 = this->m_state[col * 4 + 1];
+    a2 = this->m_state[col * 4 + 2];
+    a3 = this->m_state[col * 4 + 3];
 
     // todo - this could be sped up with a 2 = xmult function, and 3 =
     // xmult(a)^a
@@ -375,21 +392,21 @@ void Rijndael::MixColumn(void) {
     b2 = a0 ^ a1 ^ xmult(a2) ^ a3 ^ xmult(a3);
     b3 = a0 ^ xmult(a0) ^ a1 ^ a2 ^ xmult(a3);
 
-    state[col * 4 + 0] = b0;
-    state[col * 4 + 1] = b1;
-    state[col * 4 + 2] = b2;
-    state[col * 4 + 3] = b3;
+    this->m_state[col * 4 + 0] = b0;
+    this->m_state[col * 4 + 1] = b1;
+    this->m_state[col * 4 + 2] = b2;
+    this->m_state[col * 4 + 3] = b3;
   }
 }  // MixColumn
 
 void Rijndael::InvMixColumn(void) {
   // poly32_inv used here - we hard coded - todo - defines
   unsigned char a0, a1, a2, a3, b0, b1, b2, b3;
-  for (int col = 0; col < Nb; col++) {
-    a0 = state[4 * col + 0];
-    a1 = state[4 * col + 1];
-    a2 = state[4 * col + 2];
-    a3 = state[4 * col + 3];
+  for (int col = 0; col < this->m_Nb; col++) {
+    a0 = this->m_state[4 * col + 0];
+    a1 = this->m_state[4 * col + 1];
+    a2 = this->m_state[4 * col + 2];
+    a3 = this->m_state[4 * col + 3];
 
     b0 = GF2_8_mult(0x0E, a0) ^ GF2_8_mult(0x0B, a1) ^ GF2_8_mult(0x0D, a2) ^
          GF2_8_mult(0x09, a3);
@@ -400,18 +417,18 @@ void Rijndael::InvMixColumn(void) {
     b3 = GF2_8_mult(0x0B, a0) ^ GF2_8_mult(0x0D, a1) ^ GF2_8_mult(0x09, a2) ^
          GF2_8_mult(0x0E, a3);
 
-    state[4 * col + 0] = b0;
-    state[4 * col + 1] = b1;
-    state[4 * col + 2] = b2;
-    state[4 * col + 3] = b3;
+    this->m_state[4 * col + 0] = b0;
+    this->m_state[4 * col + 1] = b1;
+    this->m_state[4 * col + 2] = b2;
+    this->m_state[4 * col + 3] = b3;
   }
 }  // InvMixColumn
 
 void Rijndael::AddRoundKey(int round) {
-  const unsigned char *r_ptr = W + round * state_size;
-  unsigned char *s_ptr = state;
+  const unsigned char *r_ptr = this->m_W + round * this->m_state_size;
+  unsigned char *s_ptr = this->m_state;
 
-  for (int pos = 0; pos < state_size; pos++) {
+  for (int pos = 0; pos < this->m_state_size; pos++) {
     *s_ptr++ ^= *r_ptr++;
   }
 }  // AddRoundKey
@@ -464,41 +481,41 @@ uint32_t Rijndael::SubByte(uint32_t data) {
 
 // Key expansion code - makes local copy
 void Rijndael::KeyExpansion(const unsigned char *key) {
-  assert(Nk > 0);
+  assert(this->m_Nk > 0);
   int i;
   // todo not portable - Endian problems
-  uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(W);
-  if (Nk <= 6) {
+  uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(this->m_W);
+  if (this->m_Nk <= 6) {
     // todo - memcpy
-    for (i = 0; i < 4 * Nk; i++) {
-      W[i] = key[i];
+    for (i = 0; i < 4 * this->m_Nk; i++) {
+      this->m_W[i] = key[i];
     }
-    for (i = Nk; i < Nb * (Nr + 1); i++) {
+    for (i = this->m_Nk; i < this->m_Nb * (this->m_Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0) {
-        temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
+      if ((i % this->m_Nk) == 0) {
+        temp = SubByte(RotByte(temp)) ^ Rcon[i / this->m_Nk];
       }
-      Wb[i] = Wb[i - Nk] ^ temp;
+      Wb[i] = Wb[i - this->m_Nk] ^ temp;
     }
   } else {
     // todo - memcpy
-    for (i = 0; i < 4 * Nk; i++) {
-      W[i] = key[i];
+    for (i = 0; i < 4 * this->m_Nk; i++) {
+      this->m_W[i] = key[i];
     }
-    for (i = Nk; i < Nb * (Nr + 1); i++) {
+    for (i = this->m_Nk; i < this->m_Nb * (this->m_Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0) {
-        temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
-      } else if ((i % Nk) == 4) {
+      if ((i % this->m_Nk) == 0) {
+        temp = SubByte(RotByte(temp)) ^ Rcon[i / this->m_Nk];
+      } else if ((i % this->m_Nk) == 4) {
         temp = SubByte(temp);
       }
-      Wb[i] = Wb[i - Nk] ^ temp;
+      Wb[i] = Wb[i - this->m_Nk] ^ temp;
     }
   }
 }  // KeyExpansion
 
 void Rijndael::SetParameters(int keylength, int blocklength) {
-  Nk = Nr = Nb = 0;  // default values
+  this->m_Nk = this->m_Nr = this->m_Nb = 0;  // default values
 
   if ((keylength != 128) && (keylength != 192) && (keylength != 256)) {
     return;  // nothing - todo - throw error?
@@ -508,16 +525,20 @@ void Rijndael::SetParameters(int keylength, int blocklength) {
   }
 
   // legal parameters, so fire it up
-  Nk = keylength / 32;
-  Nb = blocklength / 32;
+  this->m_Nk = keylength / 32;
+  this->m_Nb = blocklength / 32;
 
-  state_size = 4 * Nb;  // bytes in state vector
+  this->m_state_size = 4 * this->m_Nb;  // bytes in state vector
 
   // fill memory
-  Nr = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2) * 4 + 0];
-  C1 = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2) * 4 + 1];
-  C2 = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2) * 4 + 2];
-  C3 = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2) * 4 + 3];
+  this->m_Nr =
+      parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2) * 4 + 0];
+  this->m_C1 =
+      parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2) * 4 + 1];
+  this->m_C2 =
+      parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2) * 4 + 2];
+  this->m_C3 =
+      parameters[((this->m_Nk - 4) / 2 + 3 * (this->m_Nb - 4) / 2) * 4 + 3];
 }  // SetParameters
 
 void DumpCharTable(std::ostream &out, const char *name,
@@ -626,35 +647,37 @@ void DumpHex(const unsigned char *table,
   std::cerr << std::dec;
 }  // DumpHex
 
-void Rijndael::EncryptBlock(
-    const unsigned char *datain1, unsigned char *dataout1,
-    const unsigned char *states) {  // todo ? allow in place encryption
+void Rijndael::EncryptBlock(const unsigned char *datain1,
+                            unsigned char *dataout1,
+                            const unsigned char *states) {
+  // todo ? allow in place encryption
   const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
   uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
-  std::memcpy(state, datain, state_size);
-  AddRoundKey(0);
-  for (int i = 1; i < Nr; i++) {
-    Round(i);
+  std::memcpy(this->m_state, datain, this->m_state_size);
+  this->AddRoundKey(0);
+  for (int i = 1; i < this->m_Nr; i++) {
+    this->Round(i);
     if (0 != states) {  // compare
-      if (memcmp(state, states + (i - 1) * state_size, state_size) != 0) {
+      if (std::memcmp(this->m_state, states + (i - 1) * this->m_state_size,
+                      this->m_state_size) != 0) {
         std::cerr << "State " << i << " failed:\n";
         std::cerr << "State     : ";
-        DumpHex(state, state_size);
+        DumpHex(this->m_state, this->m_state_size);
         std::cerr << "Should be : ";
-        DumpHex(states + (i - 1) * state_size, state_size);
+        DumpHex(states + (i - 1) * this->m_state_size, this->m_state_size);
       }
     }
   }
-  FinalRound(Nr);
-  std::memcpy(dataout, state, state_size);
+  FinalRound(this->m_Nr);
+  std::memcpy(dataout, this->m_state, this->m_state_size);
 }  // Encrypt
 
 // call this to encrypt any size block
 void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
                        uint32_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
-  unsigned int blocksize = Nb * 4;
+  unsigned int blocksize = this->m_Nb * 4;
   switch (mode) {
     case ECB:
       while (numBlocks) {
@@ -695,22 +718,23 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
   const uint32_t *datain = reinterpret_cast<const uint32_t *>(datain1);
   uint32_t *dataout = reinterpret_cast<uint32_t *>(dataout1);
 
-  std::memcpy(state, datain, state_size);
-  InvFinalRound(Nr);
-  for (int i = Nr - 1; i > 0; i--) {
+  std::memcpy(this->m_state, datain, this->m_state_size);
+  InvFinalRound(this->m_Nr);
+  for (int i = this->m_Nr - 1; i > 0; i--) {
     if (0 != states) {  // compare
-      if (memcmp(state, states + (i - 1) * state_size, state_size) != 0) {
+      if (memcmp(this->m_state, states + (i - 1) * this->m_state_size,
+                 this->m_state_size) != 0) {
         std::cerr << "State " << i << " failed:\n";
         std::cerr << "State     : ";
-        DumpHex(state, state_size);
+        DumpHex(this->m_state, this->m_state_size);
         std::cerr << "Should be : ";
-        DumpHex(states + (i - 1) * state_size, state_size);
+        DumpHex(states + (i - 1) * this->m_state_size, this->m_state_size);
       }
     }
     InvRound(i);
   }
   AddRoundKey(0);
-  std::memcpy(dataout, state, state_size);
+  std::memcpy(dataout, this->m_state, this->m_state_size);
 }  // Decrypt
 
 // call this to decrypt any size block
@@ -719,7 +743,7 @@ void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
   if (0 == numBlocks) {
     return;
   }
-  unsigned int blocksize = Nb * 4;
+  unsigned int blocksize = this->m_Nb * 4;
   switch (mode) {
     case ECB: {
       while (numBlocks) {

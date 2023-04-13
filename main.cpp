@@ -46,8 +46,14 @@
 #include <iostream>
 
 // define this to test old direct slow method, else remove for fast method
-// #define USE_SLOW_RIJNDAEL
-#define RANDOM_TEST_COUNT 1000  // how many random tests to do
+// #define USE_SLOW_RIJNDAE
+
+// how many random tests to do
+#ifdef USE_SLOW_RIJNDAEL
+#define RANDOM_TEST_COUNT 10
+#else
+#define RANDOM_TEST_COUNT 1000
+#endif
 
 #ifdef USE_SLOW_RIJNDAEL
 #define AES Rijndael
