@@ -47,8 +47,6 @@
 // up to Nb of these
 // NOTE: thus rows and columns are interchanged from the paper
 
-using namespace std;
-
 namespace {  // anonymous namespace
 
 // have the tables been initialized?
@@ -57,9 +55,9 @@ bool tablesInitialized = false;
 // constants defining the algorithm
 int const gf2_8_poly = 0x11B;  // the poly defining the 256 element field
 // poly defining mixing, coeffs usually '03010102'
-// const unsigned long poly32 = 0x03010102;
+// const uint64_t poly32 = 0x03010102;
 // poly inverse, coeffs usually '0B0D090E'
-// const unsigned long poly32_inv = 0x0B0D090E;
+// const uint64_t poly32_inv = 0x0B0D090E;
 
 int const parameters[] = {
     // data in  Nr,C1,C2,C3 form
@@ -146,7 +144,7 @@ unsigned char inv_byte_sub[256] = {
 };
 
 // this table needs Nb*(Nr+1)/Nk entries - up to 8*(15)/4 = 60
-unsigned long Rcon[60] = {
+uint64_t Rcon[60] = {
     // todo -  this table may be stored as bytes or made on the fly
     0x00000000, 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010,
     0x00000020, 0x00000040, 0x00000080, 0x0000001b, 0x00000036, 0x0000006c,
@@ -175,8 +173,9 @@ unsigned char GF2_8_mult(
     if (a & 128) {
       a <<= 1;
       a ^= (gf2_8_poly & 255);
-    } else
+    } else {
       a <<= 1;
+    }
     b >>= 1;
   }
   return result;
@@ -370,8 +369,9 @@ void Rijndael::AddRoundKey(int round) {
   const unsigned char *r_ptr = W + round * state_size;
   unsigned char *s_ptr = state;
 
-  for (int pos = 0; pos < state_size; pos++) *s_ptr++ ^= *r_ptr++;
-
+  for (int pos = 0; pos < state_size; pos++) {
+    *s_ptr++ ^= *r_ptr++;
+  }
 }  // AddRoundKey
 
 // the round functions
@@ -401,17 +401,15 @@ void Rijndael::InvFinalRound(int round) {
   InvByteSub();
 }  // FinalRound
 
-unsigned long Rijndael::RotByte(
-    unsigned long
-        data) {  // bytes (a,b,c,d) -> (b,c,d,a)	so low becomes high
+uint64_t Rijndael::RotByte(uint64_t data) {
+  // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
   return (data << 24) | (data >> 8);
   // todo inline with rotr
-
 }  // RotByte
 
-unsigned long Rijndael::SubByte(
-    unsigned long data) {  // does the SBox on this 4 byte data
-  unsigned result = 0;
+uint64_t Rijndael::SubByte(uint64_t data) {
+  // does the SBox on this 4 byte data
+  uint64_t result = 0;
   result = byte_sub[data >> 24];
   result <<= 8;
   result |= byte_sub[(data >> 16) & 255];
@@ -426,14 +424,16 @@ unsigned long Rijndael::SubByte(
 void Rijndael::KeyExpansion(const unsigned char *key) {
   assert(Nk > 0);
   int i;
-  unsigned long temp, *Wb = reinterpret_cast<unsigned long *>(
-                          W);  // todo not portable - Endian problems
+  // todo not portable - Endian problems
+  uint64_t temp, *Wb = reinterpret_cast<uint64_t *>(W);
   if (Nk <= 6) {
     // todo - memcpy
     for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
     for (i = Nk; i < Nb * (Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0) temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
+      if ((i % Nk) == 0) {
+        temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
+      }
       Wb[i] = Wb[i - Nk] ^ temp;
     }
   } else {
@@ -441,10 +441,11 @@ void Rijndael::KeyExpansion(const unsigned char *key) {
     for (i = 0; i < 4 * Nk; i++) W[i] = key[i];
     for (i = Nk; i < Nb * (Nr + 1); i++) {
       temp = Wb[i - 1];
-      if ((i % Nk) == 0)
+      if ((i % Nk) == 0) {
         temp = SubByte(RotByte(temp)) ^ Rcon[i / Nk];
-      else if ((i % Nk) == 4)
+      } else if ((i % Nk) == 4) {
         temp = SubByte(temp);
+      }
       Wb[i] = Wb[i - Nk] ^ temp;
     }
   }
@@ -471,48 +472,77 @@ void Rijndael::SetParameters(int keylength, int blocklength) {
   C3 = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2) * 4 + 3];
 }  // SetParameters
 
-void DumpCharTable(ostream &out, const char *name, const unsigned char *table,
+void DumpCharTable(std::ostream &out, const char *name,
+                   const unsigned char *table,
                    int length) {  // dump te contents of a table to a file
   int pos;
-  out << name << endl << hex;
+  out << name << std::endl << std::hex;
   for (pos = 0; pos < length; pos++) {
     out << "0x";
-    if (table[pos] < 16) out << '0';
+    if (table[pos] < 16) {
+      out << '0';
+    }
     out << static_cast<unsigned int>(table[pos]) << ',';
-    if ((pos % 16) == 15) out << endl;
+    if ((pos % 16) == 15) {
+      out << std::endl;
+    }
   }
-  out << dec;
+  out << std::dec;
 }  // DumpCharTable
 
-void DumpLongTable(ostream &out, const char *name, const unsigned long *table,
+void DumpLongTable(std::ostream &out, const char *name, const uint64_t *table,
                    int length) {  // dump te contents of a table to a file
   int pos;
-  out << name << endl << hex;
+  out << name << std::endl << std::hex;
   for (pos = 0; pos < length; pos++) {
     out << "0x";
-    if (table[pos] < 16) out << '0';
-    if (table[pos] < 16 * 16) out << '0';
-    if (table[pos] < 16 * 16 * 16) out << '0';
-    if (table[pos] < 16 * 16 * 16 * 16) out << '0';
-    if (table[pos] < 16 * 16 * 16 * 16 * 16) out << '0';
-    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16) out << '0';
-    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16 * 16) out << '0';
+    if (table[pos] < 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
+    if (table[pos] < 16 * 16 * 16 * 16 * 16 * 16 * 16) {
+      out << '0';
+    }
     out << static_cast<unsigned int>(table[pos]) << ',';
-    if ((pos % 8) == 7) out << endl;
+    if ((pos % 8) == 7) {
+      out << std::endl;
+    }
   }
-  out << dec;
+  out << std::dec;
 }  // DumpCharTable
 
 // return true iff tables are valid. create = true fills them in if not
 bool CreateRijndaelTables(bool create, bool create_file) {
   bool retval = true;
-  if (CheckInverses(create) == false) retval = false;
-  if (CheckByteSub(create) == false) retval = false;
-  if (CheckInvByteSub(create) == false) retval = false;
-  if (CheckRcon(create) == false) return false;
+  if (CheckInverses(create) == false) {
+    retval = false;
+  }
+  if (CheckByteSub(create) == false) {
+    retval = false;
+  }
+  if (CheckInvByteSub(create) == false) {
+    retval = false;
+  }
+  if (CheckRcon(create) == false) {
+    return false;
+  }
 
   if (create_file == true) {  // dump tables
-    ofstream out;
+    std::ofstream out;
     out.open("Tables.dat");
     if (out.is_open() == true) {
       DumpCharTable(out, "gf2_8_inv", gf2_8_inv, 256);
@@ -535,21 +565,24 @@ void Rijndael::StartEncryption(const unsigned char *key) {
 void DumpHex(const unsigned char *table,
              int length) {  // dump some hex values for debugging
   int pos;
-  cerr << hex;
+  std::cerr << std::hex;
   for (pos = 0; pos < length; pos++) {
-    if (table[pos] < 16) cerr << '0';
-    cerr << static_cast<unsigned int>(table[pos]) << ' ';
-    if ((pos % 16) == 15) cerr << endl;
+    if (table[pos] < 16) {
+      std::cerr << '0';
+    }
+    std::cerr << static_cast<unsigned int>(table[pos]) << ' ';
+    if ((pos % 16) == 15) {
+      std::cerr << std::endl;
+    }
   }
-  cerr << dec;
+  std::cerr << std::dec;
 }  // DumpHex
 
 void Rijndael::EncryptBlock(
     const unsigned char *datain1, unsigned char *dataout1,
     const unsigned char *states) {  // todo ? allow in place encryption
-  const unsigned long *datain =
-      reinterpret_cast<const unsigned long *>(datain1);
-  unsigned long *dataout = reinterpret_cast<unsigned long *>(dataout1);
+  const uint64_t *datain = reinterpret_cast<const uint64_t *>(datain1);
+  uint64_t *dataout = reinterpret_cast<uint64_t *>(dataout1);
 
   memcpy(state, datain, state_size);
   AddRoundKey(0);
@@ -557,10 +590,10 @@ void Rijndael::EncryptBlock(
     Round(i);
     if (0 != states) {  // compare
       if (memcmp(state, states + (i - 1) * state_size, state_size) != 0) {
-        cerr << "State " << i << " failed:\n";
-        cerr << "State     : ";
+        std::cerr << "State " << i << " failed:\n";
+        std::cerr << "State     : ";
         DumpHex(state, state_size);
-        cerr << "Should be : ";
+        std::cerr << "Should be : ";
         DumpHex(states + (i - 1) * state_size, state_size);
       }
     }
@@ -571,7 +604,7 @@ void Rijndael::EncryptBlock(
 
 // call this to encrypt any size block
 void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
-                       unsigned long numBlocks, BlockMode mode) {
+                       uint64_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
   unsigned int blocksize = Nb * 4;
   switch (mode) {
@@ -610,19 +643,18 @@ void Rijndael::StartDecryption(const unsigned char *key) {
 void Rijndael::DecryptBlock(const unsigned char *datain1,
                             unsigned char *dataout1,
                             const unsigned char *states) {
-  const unsigned long *datain =
-      reinterpret_cast<const unsigned long *>(datain1);
-  unsigned long *dataout = reinterpret_cast<unsigned long *>(dataout1);
+  const uint64_t *datain = reinterpret_cast<const uint64_t *>(datain1);
+  uint64_t *dataout = reinterpret_cast<uint64_t *>(dataout1);
 
   memcpy(state, datain, state_size);
   InvFinalRound(Nr);
   for (int i = Nr - 1; i > 0; i--) {
     if (0 != states) {  // compare
       if (memcmp(state, states + (i - 1) * state_size, state_size) != 0) {
-        cerr << "State " << i << " failed:\n";
-        cerr << "State     : ";
+        std::cerr << "State " << i << " failed:\n";
+        std::cerr << "State     : ";
         DumpHex(state, state_size);
-        cerr << "Should be : ";
+        std::cerr << "Should be : ";
         DumpHex(states + (i - 1) * state_size, state_size);
       }
     }
@@ -634,7 +666,7 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
 
 // call this to decrypt any size block
 void Rijndael::Decrypt(const unsigned char *datain, unsigned char *dataout,
-                       unsigned long numBlocks, BlockMode mode) {
+                       uint64_t numBlocks, BlockMode mode) {
   if (0 == numBlocks) return;
   unsigned int blocksize = Nb * 4;
   switch (mode) {

@@ -30,8 +30,8 @@
 */
 
 // headed to implement Advanced Encryption Standard - Rijndael2
-#ifndef _AES_H
-#define _AES_H
+#ifndef AES_H_
+#define AES_H_
 
 /* USAGE:
         1. Create a AES class (or more as necessary)
@@ -55,7 +55,8 @@
    bytes!
   */
 
-// todo - replace all types with u1byte, u4byte, etc
+// TODO(unknown) - replace all types with u1byte, u4byte, etc
+#include <cstdint>
 
 class AES {
  public:
@@ -66,14 +67,14 @@ class AES {
   // multiple block encryption/decryption modes
   // See http://en.wikipedia.org/wiki/Block_cipher_modes_of_operation
   enum BlockMode {
-    ECB = 0,  // Electronic CodeBook	  - each block independent, weak
+    ECB = 0,  // Electronic CodeBook   - each block independent, weak
     CBC = 1   // Cipher Block Chaining - most secure
-    // todo - CFB = 2, // Cipher FeedBack       - secure
-    // todo - OFB = 3, // Output FeedBack		  - secure
-    // todo - CTR = 4,  // Counter				  - allows midstream decryption, somewhat
-    // secure todo - EAX = 5, -
-    // http://www.cs.berkeley.edu/~daw/papers/eprint-short-ae.pdf todo - GCM =
-    // 6, - http://www.cryptobarn.com/papers/gcm-spec.pdf
+    // TODO(unknown) - CFB = 2, // Cipher FeedBack       - secure
+    // TODO(unknown) - OFB = 3, // Output FeedBack       - secure
+    // TODO(unknown) - CTR = 4, // Counter               - allows midstream
+    // decryption, somewhat secure TODO(unknown) - EAX = 5, -
+    // http://www.cs.berkeley.edu/~daw/papers/eprint-short-ae.pdf TODO(unknown)
+    // - GCM = 6, - http://www.cryptobarn.com/papers/gcm-spec.pdf
   };
 
   // block and key size are in bits, legal values are 128, 192, and 256
@@ -90,7 +91,7 @@ class AES {
   // data before calling, preferably using the padding methods listed below.
   // Decryption must use the same mode as the encryption.
   void Encrypt(const unsigned char* datain, unsigned char* dataout,
-               unsigned long numBlocks, BlockMode mode = CBC);
+               uint64_t numBlocks, BlockMode mode = CBC);
 
   // call this before any decryption with the key to use
   void StartDecryption(const unsigned char* key);
@@ -102,7 +103,7 @@ class AES {
   // must know the desired length of the output data, since all the blocks are
   // returned decrypted. Encryption must use the same mode as the decryption.
   void Decrypt(const unsigned char* datain, unsigned char* dataout,
-               unsigned long numBlocks, BlockMode mode = CBC);
+               uint64_t numBlocks, BlockMode mode = CBC);
 
  private:
   int Nb, Nk;  // block and key length / 32, should be 4,6,or 8
@@ -112,7 +113,6 @@ class AES {
 
   // Key expansion code - makes local copy
   void KeyExpansion(const unsigned char* key);
-
 };  // class AES
 
 /* PADDING:
@@ -129,7 +129,7 @@ class AES {
    many bytes are in the original unencrypted data.
         */
 
-/* TODO
+/* TODO(unknown)
 The Encrypt() function is used to encrypt larger blocks of data. The block size
 has to be a multiple of the method's block size. This function can operate in
 the following modes: ECB, CBC or CFB. ECB mode is not using chaining. If the
@@ -143,5 +143,5 @@ value.
 
 */
 
-#endif  //  _AES_H
+#endif  //  AES_H_
 // end - AES.h

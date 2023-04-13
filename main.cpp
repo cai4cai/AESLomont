@@ -43,8 +43,6 @@
 #include <fstream>
 #include <iostream>
 
-using namespace std;
-
 // define this to test old direct slow method, else remove for fast method
 // #define _SLOW
 #define RANDOM_TEST_COUNT 1000  // how many random tests to do
@@ -141,39 +139,49 @@ bool TestVector(const test_t& vector, bool use_states) {
   TextToHex(vector.ciphertext, reinterpret_cast<char*>(ciphertext));
   TextToHex(vector.plaintext, reinterpret_cast<char*>(plaintext));
 
-  if (use_states == true)
-    for (int pos = 0; pos < 9; pos++)
+  if (use_states == true) {
+    for (int pos = 0; pos < 9; pos++) {
       TextToHex(vector.e_vectors[pos],
                 reinterpret_cast<char*>(states) + pos * 16);
+    }
+  }
 
   crypt.StartEncryption(key);
 #ifdef _SLOW
-  if (use_states == true)
+  if (use_states == true) {
     crypt.EncryptBlock(plaintext, temptext, states);
-  else
-#endif
+  } else {
     crypt.EncryptBlock(plaintext, temptext);
+  }
+#else
+  crypt.EncryptBlock(plaintext, temptext);
+#endif
 
   // check that temp = cipher
   if (memcmp(ciphertext, temptext, blocklen) != 0) {
-    cout << "Error: encryption error\n";
+    std::cout << "Error: encryption error\n";
     retval = false;
-  } else
-    cout << "Encryption passed\n";
+  } else {
+    std::cout << "Encryption passed\n";
+  }
 
   crypt.StartDecryption(key);
 #ifdef _SLOW
-  if (use_states == true)
+  if (use_states == true) {
     crypt.DecryptBlock(ciphertext, temptext, states);
-  else
-#endif
+  } else {
     crypt.DecryptBlock(ciphertext, temptext);
+  }
+#else
+  crypt.DecryptBlock(ciphertext, temptext);
+#endif
 
   if (memcmp(plaintext, temptext, blocklen) != 0) {
-    cout << "Error: decryption error\n";
+    std::cout << "Error: decryption error\n";
     retval = false;
-  } else
-    cout << "Decryption passed\n";
+  } else {
+    std::cout << "Decryption passed\n";
+  }
 
   return retval;
 }  // TestVector
@@ -188,23 +196,23 @@ bool CheckBuffer(const unsigned char* buf, int length) {
 bool RandomTest(int pos) {
   // data sizes in bytes
   int keylen, blocklen, datalen, mode;
-  keylen = (rand() % 3) * 8 + 16;
-  blocklen = (rand() % 3) * 8 + 16;
-  mode = rand() % 2;  // various chaining modes
+  keylen = (std::rand() % 3) * 8 + 16;
+  blocklen = (std::rand() % 3) * 8 + 16;
+  mode = std::rand() % 2;  // various chaining modes
   assert((16 == keylen) || (24 == keylen) || (32 == keylen));
   assert((16 == blocklen) || (24 == blocklen) || (32 == blocklen));
 
 #define MAXDATA 4096  // max length of random data
   AES crypt;
   crypt.SetParameters(keylen * 8, blocklen * 8);
-  datalen = rand() % MAXDATA;
+  datalen = std::rand() % MAXDATA;
   unsigned char key[32], plaintext[MAXDATA + 40], ciphertext[MAXDATA + 40],
       temptext[MAXDATA + 40];
 
-  cout << "Test: " << pos + 1 << "  (keysize,blocksize,datalength): (" << keylen
-       << ',' << blocklen << "," << datalen << ")\n";
+  std::cout << "Test: " << pos + 1 << "  (keysize,blocksize,datalength): ("
+            << keylen << ',' << blocklen << "," << datalen << ")\n";
 
-  for (pos = 0; pos < keylen; pos++) key[pos] = rand();
+  for (pos = 0; pos < keylen; pos++) key[pos] = std::rand();
   // add buffer bytes to each end to catch errors
   plaintext[0] = 0xBE;
   plaintext[1] = 0xEF;
@@ -212,7 +220,7 @@ bool RandomTest(int pos) {
   ciphertext[1] = 0xEF;
   temptext[0] = 0xBE;
   temptext[1] = 0xEF;
-  for (pos = 0; pos < datalen; pos++) plaintext[pos + 2] = rand();
+  for (pos = 0; pos < datalen; pos++) plaintext[pos + 2] = std::rand();
   // pad
   int padlen = blocklen - (datalen % blocklen);
   for (pos = 0; pos < padlen; pos++) plaintext[pos + 2 + datalen] = 0;
@@ -237,15 +245,16 @@ bool RandomTest(int pos) {
                 static_cast<AES::BlockMode>(mode));
 
   if (memcmp(plaintext + 2, temptext + 2, datalen) != 0) {
-    cout << "Error: decryption error\n";
+    std::cout << "Error: decryption error\n";
     return false;
   } else if ((false == CheckBuffer(plaintext, datalen + padlen)) ||
              (false == CheckBuffer(temptext, datalen + padlen)) ||
              (false == CheckBuffer(ciphertext, datalen + padlen))) {
-    cout << "Error: buffer overflow\n";
+    std::cout << "Error: buffer overflow\n";
     return false;
-  } else
-    cout << "Decryption passed\n";
+  } else {
+    std::cout << "Decryption passed\n";
+  }
   return true;
 }  // RandomTest
 
@@ -274,9 +283,13 @@ void Timing(int rounds, int keylen, int blocklen) {
   AES crypt;
   crypt.SetParameters(keylen * 8, blocklen * 8);
 
-  srand(0);  // make repeatable
-  for (pos = 0; pos < keylen; pos++) key[pos] = rand();
-  for (pos = 0; pos < blocklen; pos++) plaintext[pos] = rand();
+  std::srand(0);  // make repeatable
+  for (pos = 0; pos < keylen; pos++) {
+    key[pos] = std::rand();
+  }
+  for (pos = 0; pos < blocklen; pos++) {
+    plaintext[pos] = std::rand();
+  }
 
   // find overhead for these
   start1 = GetCounter();
@@ -284,27 +297,28 @@ void Timing(int rounds, int keylen, int blocklen) {
   overhead = end1 - start1;
 
   crypt.StartEncryption(key);
-  long min_e = 1000000;
+  int64_t min_e = 1000000;
   double total_e = 0;
   for (pos = 0; pos < rounds; pos++) {
     start1 = GetCounter();
     crypt.EncryptBlock(plaintext, ciphertext);
     end1 = GetCounter();
     total_e += end1 - start1 - overhead;
-    if (min_e > (end1 - start1 - overhead))
-      min_e = static_cast<long>(end1 - start1 - overhead);
+    if (min_e > (end1 - start1 - overhead)) {
+      min_e = end1 - start1 - overhead;
+    }
   }
 
-  cout << "Min cycles per encryption (key,block): (" << keylen * 8 << ','
-       << blocklen * 8 << ") ";
-  cout << min_e << endl;
+  std::cout << "Min cycles per encryption (key,block): (" << keylen * 8 << ','
+            << blocklen * 8 << ") ";
+  std::cout << min_e << std::endl;
 
-  cout << "Avg cycles per encryption (key,block): (" << keylen * 8 << ','
-       << blocklen * 8 << ") ";
-  cout << total_e / rounds << endl;
+  std::cout << "Avg cycles per encryption (key,block): (" << keylen * 8 << ','
+            << blocklen * 8 << ") ";
+  std::cout << total_e / rounds << std::endl;
 
   crypt.StartDecryption(key);
-  long min_d = 1000000;
+  int64_t min_d = 1000000;
   double total_d = 0;
 
   for (pos = 0; pos < rounds; pos++) {
@@ -312,27 +326,28 @@ void Timing(int rounds, int keylen, int blocklen) {
     crypt.DecryptBlock(plaintext, ciphertext);
     end2 = GetCounter();
     total_d += end2 - start2 - overhead;
-    if (min_d > (end2 - start2 - overhead))
-      min_d = static_cast<long>(end2 - start2 - overhead);
+    if (min_d > (end2 - start2 - overhead)) {
+      min_d = end2 - start2 - overhead;
+    }
   }
 
-  cout << "Min cycles per decryption (key,block): (" << keylen * 8 << ','
-       << blocklen * 8 << ") ";
-  cout << min_d << endl;
-  cout << "Avg cycles per decryption (key,block): (" << keylen * 8 << ','
-       << blocklen * 8 << ") ";
-  cout << total_d / rounds << endl;
+  std::cout << "Min cycles per decryption (key,block): (" << keylen * 8 << ','
+            << blocklen * 8 << ") ";
+  std::cout << min_d << std::endl;
+  std::cout << "Avg cycles per decryption (key,block): (" << keylen * 8 << ','
+            << blocklen * 8 << ") ";
+  std::cout << total_d / rounds << std::endl;
 }  // Timing
 
 // test a file encryption
 void AESEncryptFile(const char* fname) {
-  ifstream ifile(fname, ios_base::binary);
-  ofstream ofile("aesout.dat", ios_base::binary);
+  std::ifstream ifile(fname, std::ios_base::binary);
+  std::ofstream ofile("aesout.dat", std::ios_base::binary);
 
   // get file size
-  ifile.seekg(0, ios_base::end);
+  ifile.seekg(0, std::ios_base::end);
   int size, fsize = ifile.tellg();
-  ifile.seekg(0, ios_base::beg);
+  ifile.seekg(0, std::ios_base::beg);
 
   // round up (ignore pad for here)
   size = (fsize + 15) & (~15);
@@ -345,7 +360,7 @@ void AESEncryptFile(const char* fname) {
   crypt.SetParameters(192);
   // random key good enough
   unsigned char key[192 / 8];
-  for (size_t pos = 0; pos < sizeof(key); ++pos) key[pos] = rand();
+  for (size_t pos = 0; pos < sizeof(key); ++pos) key[pos] = std::rand();
   crypt.StartEncryption(key);
   crypt.Encrypt(reinterpret_cast<const unsigned char*>(ibuffer),
                 reinterpret_cast<unsigned char*>(obuffer), size / 16);
@@ -381,20 +396,20 @@ int main(void) {
 
   // this is to randomly test data
   srand(0);  // make reproducible
-  cout << "Random tests:\n";
+  std::cout << "Random tests:\n";
   for (int pos = 0; pos < RANDOM_TEST_COUNT; pos++) {
     bool passed = RandomTest(pos);
     allPassed &= passed;
-    if (passed == false) cerr << "Random Test " << pos << " failed\n";
+    if (passed == false) std::cerr << "Random Test " << pos << " failed\n";
   }
 
   if (false == allPassed)
-    cerr << "ERROR: Some test(s) failed\n";
+    std::cerr << "ERROR: Some test(s) failed\n";
   else
-    cout << "PASSED: All tests passed\n";
+    std::cout << "PASSED: All tests passed\n";
 
   // test a file encryption
-  //	AESEncryptFile("main.cpp");
+  // AESEncryptFile("main.cpp");
 
   return 0;
 }  // main

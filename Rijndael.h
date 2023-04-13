@@ -30,8 +30,8 @@
 */
 
 // headed to implement Advanced Encryption Standard - Rijndael
-#ifndef _RIJNDAEL_H
-#define _RIJNDAEL_H
+#ifndef RIJNDAEL_H_
+#define RIJNDAEL_H_
 
 /* USAGE:
         1. Create a Rijndael class (or more as necessary)
@@ -51,7 +51,8 @@
    rj.Encrypt(data,output,3); // note data and output must be at least 48 bytes!
   */
 
-// todo - replace all types with u1byte, u4byte, etc
+// TODO(unknown) - replace all types with u1byte, u4byte, etc
+#include <cstdint>
 
 class Rijndael {
  public:
@@ -62,14 +63,14 @@ class Rijndael {
   // multiple block encryption/decryption modes
   // See http://en.wikipedia.org/wiki/Block_cipher_modes_of_operation
   enum BlockMode {
-    ECB = 0,  // Electronic CodeBook	  - each block independent, weak
-    CBC = 1   // Cipher Block Chaining - most secure
-    // todo - CFB = 2, // Cipher FeedBack       - secure
-    // todo - OFB = 3, // Output FeedBack		  - secure
-    // todo - CTR = 4,  // Counter				  - allows midstream decryption, somewhat
-    // secure todo - EAX = 5, -
-    // http://www.cs.berkeley.edu/~daw/papers/eprint-short-ae.pdf todo - GCM =
-    // 6, - http://www.cryptobarn.com/papers/gcm-spec.pdf
+    ECB = 0,  // Electronic CodeBook        - each block independent, weak
+    CBC = 1   // Cipher Block Chaining      - most secure
+    // TODO(unknown) - CFB = 2, // Cipher FeedBack   - secure
+    // TODO(unknown) - OFB = 3, // Output FeedBack   - secure
+    // TODO(unknown) - CTR = 4,  // Counter          - allows midstream
+    // decryption, somewhat secure TODO(unknown) - EAX = 5, -
+    // http://www.cs.berkeley.edu/~daw/papers/eprint-short-ae.pdf TODO(unknown)
+    // - GCM = 6, - http://www.cryptobarn.com/papers/gcm-spec.pdf
   };
 
   // block and key size are in bits, legal values are 128, 192, and 256
@@ -88,7 +89,7 @@ class Rijndael {
   // data before calling, preferably using the padding methods listed below.
   // Decryption must use the same mode as the encryption.
   void Encrypt(const unsigned char* datain, unsigned char* dataout,
-               unsigned long numBlocks, BlockMode mode = CBC);
+               uint64_t numBlocks, BlockMode mode = CBC);
 
   // call this before any decryption with the key to use
   void StartDecryption(const unsigned char* key);
@@ -101,7 +102,7 @@ class Rijndael {
   // must know the desired length of the output data, since all the blocks are
   // returned decrypted. Encryption must use the same mode as the decryption.
   void Decrypt(const unsigned char* datain, unsigned char* dataout,
-               unsigned long numBlocks, BlockMode mode = CBC);
+               uint64_t numBlocks, BlockMode mode = CBC);
 
  private:
   int Nb, Nk;  // block and key length / 32, should be 4,6,or 8
@@ -110,7 +111,7 @@ class Rijndael {
   int state_size;  // number of bytes in state
 
   // parameters for shifts on rows in RowShift
-  // todo - note C1=1 in all cases - simplify?
+  // TODO(unknown) - note C1=1 in all cases - simplify?
   int C1, C2, C3;
 
   unsigned char state[64];      // the state, allocated
@@ -125,8 +126,8 @@ class Rijndael {
   void InvMixColumn(void);
   void AddRoundKey(int round);
 
-  unsigned long RotByte(unsigned long data);
-  unsigned long SubByte(unsigned long data);
+  uint64_t RotByte(uint64_t data);
+  uint64_t SubByte(uint64_t data);
 
   // the round functions
   void Round(int round);
@@ -136,7 +137,6 @@ class Rijndael {
 
   // Key expansion code - makes local copy
   void KeyExpansion(const unsigned char* key);
-
 };  // class Rijndael
 
 /* PADDING:
@@ -153,5 +153,5 @@ class Rijndael {
    many bytes are in the original unencrypted data.
         */
 
-#endif  //  _RIJNDAEL_H
+#endif  // RIJNDAEL_H_
 // end - Rijndael.h
