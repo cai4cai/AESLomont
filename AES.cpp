@@ -33,10 +33,9 @@
 // speed optimized version
 #include "AES.h"
 
-#include <assert.h>
-#include <stdio.h>
-
 #include <bit>
+#include <cassert>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <limits>

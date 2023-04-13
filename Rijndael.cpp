@@ -33,8 +33,8 @@
 // direct, slow method
 #include "Rijndael.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #include <fstream>
 #include <iostream>

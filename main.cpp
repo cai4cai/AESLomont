@@ -36,9 +36,10 @@
 #include <windows.h>
 #endif
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cstring>
 
 #include <fstream>
 #include <iostream>
@@ -128,7 +129,8 @@ void TextToHex(const char* in, char* data) {
 bool TestVector(const test_t& vector, bool use_states) {
   bool retval = true;  // assume passes
   // data sizes in bytes
-  int keylen = strlen(vector.key) / 2, blocklen = strlen(vector.plaintext) / 2;
+  int keylen = std::strlen(vector.key) / 2;
+  int blocklen = std::strlen(vector.plaintext) / 2;
 
   AES crypt;
   crypt.SetParameters(keylen * 8, blocklen * 8);
