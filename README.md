@@ -16,3 +16,7 @@ An older, direct, and slower implementation from spec is also avaible with the `
 ## Unrelated in terms of code base but potentially relevant if you are looking for an actively maintained AES-focused library
 - https://github.com/kokke/tiny-AES-c
 - https://github.com/polfosol/micro-AES
+- https://github.com/mrdcvlsc/Krypt
+- https://github.com/SergeyBel/AES
+- https://github.com/kkAyataka/plusaes
+- https://en.wikipedia.org/wiki/AES_implementations
