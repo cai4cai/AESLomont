@@ -12,3 +12,7 @@ An older, direct, and slower implementation from spec is also avaible with the `
 - https://lomont.org/software/misc/aes/main.cpp
 - https://lomont.org/software/misc/aes/Rijndael.h
 - https://lomont.org/software/misc/aes/Rijndael.cpp
+
+## Unrelated in terms of code base but potentially relevant if you are looking for an actively maintained AES-focused library
+- https://github.com/kokke/tiny-AES-c
+- https://github.com/polfosol/micro-AES
