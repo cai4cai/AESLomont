@@ -158,7 +158,7 @@ uint32_t Rcon[60] = {
     0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x0000001b,
 };
 
-#define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
+#define xmult(a) (((a) << 1) ^ (((a)&128) ? 0x01B : 0))
 
 // mult 2 elements using gf2_8_poly as a reduction
 unsigned char GF2_8_mult(unsigned char a, unsigned char b) {
@@ -423,7 +423,9 @@ void Rijndael::InvByteSub(void) {
 }  // InvByteSub
 
 void Rijndael::ShiftRow(void) {
-  unsigned char arr[10];
+  // TODO(unknown) check clang-analyzer report of garbage assignement
+  // if arr is not initialised
+  unsigned char arr[10] = {};
   int i, j;
 
   // copy out row, then copy back 2 pieces shifted
@@ -462,7 +464,9 @@ void Rijndael::ShiftRow(void) {
 }  // ShiftRow
 
 void Rijndael::InvShiftRow(void) {
-  unsigned char arr[10];
+  // TODO(unknown) check clang-analyzer report of garbage assignement
+  // if arr is not initialised
+  unsigned char arr[10] = {};
   int i, j;
 
   for (j = 0, i = 1; j < this->m_Nb; i += 4, j++) {
@@ -548,7 +552,8 @@ void Rijndael::InvMixColumn(void) {
 }  // InvMixColumn
 
 void Rijndael::AddRoundKey(int round) {
-  const unsigned char *r_ptr = this->m_W + round * this->m_state_size;
+  const unsigned char *r_ptr =
+      this->m_W + static_cast<ptrdiff_t>(round * this->m_state_size);
   unsigned char *s_ptr = this->m_state;
 
   for (int pos = 0; pos < this->m_state_size; pos++) {
@@ -661,13 +666,16 @@ void Rijndael::EncryptBlock(const unsigned char *datain1,
   for (int i = 1; i < this->m_Nr; i++) {
     this->Round(i);
     if (0 != states) {  // compare
-      if (std::memcmp(this->m_state, states + (i - 1) * this->m_state_size,
-                      this->m_state_size) != 0) {
+      if (std::memcmp(
+              this->m_state,
+              states + static_cast<ptrdiff_t>((i - 1) * this->m_state_size),
+              this->m_state_size) != 0) {
         std::cerr << "State " << i << " failed:\n";
         std::cerr << "State     : ";
         DumpHex(this->m_state, this->m_state_size);
         std::cerr << "Should be : ";
-        DumpHex(states + (i - 1) * this->m_state_size, this->m_state_size);
+        DumpHex(states + static_cast<ptrdiff_t>((i - 1) * this->m_state_size),
+                this->m_state_size);
       }
     }
   }
@@ -681,7 +689,7 @@ void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
   if (0 == numBlocks) return;
   unsigned int blocksize = this->m_Nb * 4;
   switch (mode) {
-    case ECB:
+    case ECB: {
       while (numBlocks) {
         EncryptBlock(datain, dataout);
         datain += blocksize;
@@ -689,24 +697,28 @@ void Rijndael::Encrypt(const unsigned char *datain, unsigned char *dataout,
         --numBlocks;
       }
       break;
+    }
     case CBC: {
       unsigned char buffer[64];
       std::memset(
           buffer, 0,
           sizeof(buffer));  // clear out - TODO(unknown) - allow setting the
-                            // Initialization Vector - needed for security
+      // Initialization Vector - needed for security
       while (numBlocks) {
-        for (unsigned int pos = 0; pos < blocksize; ++pos)
+        for (unsigned int pos = 0; pos < blocksize; ++pos) {
           buffer[pos] ^= *datain++;
+        }
         EncryptBlock(buffer, dataout);
         std::memcpy(buffer, dataout, blocksize);
         dataout += blocksize;
         --numBlocks;
       }
-    } break;
-    default:
+      break;
+    }
+    default: {
       assert(!"Unknown mode!");
       break;
+    }
   }
 }  // Encrypt
 
@@ -724,13 +736,15 @@ void Rijndael::DecryptBlock(const unsigned char *datain1,
   InvFinalRound(this->m_Nr);
   for (int i = this->m_Nr - 1; i > 0; i--) {
     if (0 != states) {  // compare
-      if (memcmp(this->m_state, states + (i - 1) * this->m_state_size,
+      if (memcmp(this->m_state,
+                 states + static_cast<ptrdiff_t>((i - 1) * this->m_state_size),
                  this->m_state_size) != 0) {
         std::cerr << "State " << i << " failed:\n";
         std::cerr << "State     : ";
         DumpHex(this->m_state, this->m_state_size);
         std::cerr << "Should be : ";
-        DumpHex(states + (i - 1) * this->m_state_size, this->m_state_size);
+        DumpHex(states + static_cast<ptrdiff_t>((i - 1) * this->m_state_size),
+                this->m_state_size);
       }
     }
     InvRound(i);

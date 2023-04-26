@@ -94,7 +94,7 @@ bool tablesInitialized = false;
 
 // define to mult a byte by x mod the proper poly
 // TODO(unknown) - move magic numbers out?
-#define xmult(a) ((a) << 1) ^ (((a)&128) ? 0x01B : 0)
+#define xmult(a) (((a) << 1) ^ (((a)&128) ? 0x01B : 0))
 
 // make 4 bytes (LSB first) into a 4 byte vector
 #define VEC4(a, b, c, d)                                         \
@@ -102,7 +102,7 @@ bool tablesInitialized = false;
                         (((int32_t)(c)) << 16) | (((int32_t)(d)) << 24))
 
 // get byte 0 to 3 from word a
-#define GetByte(a, n) ((unsigned char)((a) >> (n << 3)))
+#define GetByte(a, n) ((unsigned char)((a) >> ((n) << 3)))
 
 // bytes (a,b,c,d) -> (b,c,d,a) so low becomes high
 #if __cplusplus >= 202002L  // C++20 (and later) code
@@ -312,44 +312,47 @@ bool CheckRcon(bool create) {
 }  // CheckRCon
 
 // key adding for 4,6,8 column cases
-#define AddRoundKey4(dest, src) \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;
+#define AddRoundKey4(dest, src)    \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++;
 
-#define AddRoundKey6(dest, src) \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;
+#define AddRoundKey6(dest, src)    \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++;
 
-#define AddRoundKey8(dest, src) \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;  \
-  *dest++ = *r_ptr++ ^ *src++;
+#define AddRoundKey8(dest, src)    \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++; \
+  *(dest)++ = *r_ptr++ ^ *(src)++;
 
 // this define computes one of the round vectors
-#define compute_one(dest, src2, j, C1, C2, C3, Nb)           \
-  *(dest + j) = T0[GetByte(src2[j], 0)] ^                    \
-                T1[GetByte(src2[((j + C1 + Nb) % Nb)], 1)] ^ \
-                T2[GetByte(src2[((j + C2 + Nb) % Nb)], 2)] ^ \
-                T3[GetByte(src2[((j + C3 + Nb) % Nb)], 3)] ^ *r_ptr++
+#define compute_one(dest, src2, j, C1, C2, C3, Nb)                         \
+  *((dest) + (j)) = T0[GetByte((src2)[j], 0)] ^                            \
+                    T1[GetByte((src2)[(((j) + (C1) + (Nb)) % (Nb))], 1)] ^ \
+                    T2[GetByte((src2)[(((j) + (C2) + (Nb)) % (Nb))], 2)] ^ \
+                    T3[GetByte((src2)[(((j) + (C3) + (Nb)) % (Nb))], 3)] ^ \
+                    *r_ptr++
 
 // single table version, slower
 #define compute_one_small(dest, src2, j, C1, C2, C3, Nb)             \
-  *(dest + j) =                                                      \
-      *r_ptr++ ^ T0[GetByte(src2[j], 0)] ^                           \
-      RotByteL(T0[GetByte(src2[((j + C1 + Nb) % Nb)], 1)] ^          \
-               RotByteL(T0[GetByte(src2[((j + C2 + Nb) % Nb)], 2)] ^ \
-                        RotByteL(T0[GetByte(src2[((j + C3 + Nb) % Nb)], 3)])))
+  *((dest) + (j)) =                                                  \
+      *r_ptr++ ^ T0[GetByte((src2)[j], 0)] ^                         \
+      RotByteL(                                                      \
+          T0[GetByte((src2)[(((j) + (C1) + (Nb)) % (Nb))], 1)] ^     \
+          RotByteL(                                                  \
+              T0[GetByte((src2)[(((j) + (C2) + (Nb)) % (Nb))], 2)] ^ \
+              RotByteL(T0[GetByte((src2)[(((j) + (C3) + (Nb)) % (Nb))], 3)])))
 
 #define Round4(d, s)                \
   compute_one(d, s, 0, 1, 2, 3, 4); \
@@ -375,11 +378,12 @@ bool CheckRcon(bool create) {
   compute_one(d, s, 6, 1, 3, 4, 8); \
   compute_one(d, s, 7, 1, 3, 4, 8);
 
-#define compute_one_inv(dest, src2, j, C1, C2, C3, Nb)       \
-  *(dest + j) = I0[GetByte(src2[j], 0)] ^                    \
-                I1[GetByte(src2[((j - C1 + Nb) % Nb)], 1)] ^ \
-                I2[GetByte(src2[((j - C2 + Nb) % Nb)], 2)] ^ \
-                I3[GetByte(src2[((j - C3 + Nb) % Nb)], 3)] ^ *r_ptr++
+#define compute_one_inv(dest, src2, j, C1, C2, C3, Nb)                     \
+  *((dest) + (j)) = I0[GetByte((src2)[j], 0)] ^                            \
+                    I1[GetByte((src2)[(((j) - (C1) + (Nb)) % (Nb))], 1)] ^ \
+                    I2[GetByte((src2)[(((j) - (C2) + (Nb)) % (Nb))], 2)] ^ \
+                    I3[GetByte((src2)[(((j) - (C3) + (Nb)) % (Nb))], 3)] ^ \
+                    *r_ptr++
 
 #define InvRound4(d, s)                 \
   compute_one_inv(d, s, 0, 1, 2, 3, 4); \
@@ -406,19 +410,20 @@ bool CheckRcon(bool create) {
   compute_one_inv(d, s, 7, 1, 3, 4, 8);
 
 // this define computes one of the final round vectors
-#define compute_one_final1(dest, src, j, C1, C2, C3, Nb)               \
-  *dest++ = (T3[GetByte(src[j], 0)] & 0xFF) ^                          \
-            (T3[GetByte(src[((j + C1 + Nb) % Nb)], 1)] & 0xFF00) ^     \
-            (T1[GetByte(src[((j + C2 + Nb) % Nb)], 2)] & 0xFF0000) ^   \
-            (T1[GetByte(src[((j + C3 + Nb) % Nb)], 3)] & 0xFF000000) ^ \
-            *r_ptr++
+#define compute_one_final1(dest, src, j, C1, C2, C3, Nb)                   \
+  *(dest)++ =                                                              \
+      (T3[GetByte((src)[j], 0)] & 0xFF) ^                                  \
+      (T3[GetByte((src)[(((j) + (C1) + (Nb)) % (Nb))], 1)] & 0xFF00) ^     \
+      (T1[GetByte((src)[(((j) + (C2) + (Nb)) % (Nb))], 2)] & 0xFF0000) ^   \
+      (T1[GetByte((src)[(((j) + (C3) + (Nb)) % (Nb))], 3)] & 0xFF000000) ^ \
+      *r_ptr++
 
 // for another 4K tables, we save 3 clock cycles - sick
-#define compute_one_final(dest, src, j, C1, C2, C3, Nb)   \
-  *dest++ = (T4[GetByte(src[j], 0)]) ^                    \
-            (T5[GetByte(src[((j + C1 + Nb) % Nb)], 1)]) ^ \
-            (T6[GetByte(src[((j + C2 + Nb) % Nb)], 2)]) ^ \
-            (T7[GetByte(src[((j + C3 + Nb) % Nb)], 3)]) ^ *r_ptr++
+#define compute_one_final(dest, src, j, C1, C2, C3, Nb)               \
+  *(dest)++ = (T4[GetByte((src)[j], 0)]) ^                            \
+              (T5[GetByte((src)[(((j) + (C1) + (Nb)) % (Nb))], 1)]) ^ \
+              (T6[GetByte((src)[(((j) + (C2) + (Nb)) % (Nb))], 2)]) ^ \
+              (T7[GetByte((src)[(((j) + (C3) + (Nb)) % (Nb))], 3)]) ^ *r_ptr++
 
 // final round defines - this one is for case for 4 columns
 #define FinalRound4(d, s)                 \
@@ -446,11 +451,11 @@ bool CheckRcon(bool create) {
   compute_one_final(d, s, 7, 1, 3, 4, 8);
 
 // inverse cipher stuff
-#define compute_one_final_inv(dest, src, j, C1, C2, C3, Nb) \
-  *dest++ = (I4[GetByte(src[j], 0)]) ^                      \
-            (I5[GetByte(src[((j - C1 + Nb) % Nb)], 1)]) ^   \
-            (I6[GetByte(src[((j - C2 + Nb) % Nb)], 2)]) ^   \
-            (I7[GetByte(src[((j - C3 + Nb) % Nb)], 3)]) ^ *r_ptr++
+#define compute_one_final_inv(dest, src, j, C1, C2, C3, Nb)           \
+  *(dest)++ = (I4[GetByte((src)[j], 0)]) ^                            \
+              (I5[GetByte((src)[(((j) - (C1) + (Nb)) % (Nb))], 1)]) ^ \
+              (I6[GetByte((src)[(((j) - (C2) + (Nb)) % (Nb))], 2)]) ^ \
+              (I7[GetByte((src)[(((j) - (C3) + (Nb)) % (Nb))], 3)]) ^ *r_ptr++
 
 // final round defines - this one is for case for 4 columns
 #define InvFinalRound4(d, s)                  \

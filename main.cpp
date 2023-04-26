@@ -30,20 +30,18 @@
 */
 
 // code to test the algorithm
-#include "AES.h"
-#include "Rijndael.h"
-#ifdef _WIN32
-#include <windows.h>
-#endif
 #include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 #include <cstring>
-
+#include <ctime>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+
+#include "AES.h"
+#include "Rijndael.h"
 
 // define this to test old direct slow method, else remove for fast method
 // #define USE_SLOW_RIJNDAE
@@ -60,11 +58,11 @@
 #endif
 
 typedef struct {
-  const char* key;
-  const char* plaintext;
-  const char* ciphertext;
-  const char* e_vectors[9];
-  const char* d_vectors[9];
+  const std::string key;
+  const std::string plaintext;
+  const std::string ciphertext;
+  const std::array<std::string, 9> e_vectors;
+  const std::array<std::string, 9> d_vectors;
 } test_t;
 
 // todo - add all checks from the NIST document in the header comment
@@ -90,69 +88,81 @@ test_t vectors[] = {
     {"00010203050607080A0B0C0D0F101112",
      "506812A45F08C889B97F5980038B8359",
      "D8F532538289EF7D06B506A4FD5BE9C9",
-     {0},
-     {0}},
+     {},
+     {}},
 
     {"00010203050607080A0B0C0D0F10111214151617191A1B1C",
      "2D33EEF2C0430A8A9EBF45E809C40BB6",
      "DFF4945E0336DF4C1C56BC700EFF837F",
-     {0},
-     {0}},
+     {},
+     {}},
 
     {"50515253555657585A5B5C5D5F60616264656667696A6B6C6E6F707173747576",
      "050407067477767956575051221D1C1F",
      "7444527095838FE080FC2BCDD30847EB",
-     {0},
-     {0}},
+     {},
+     {}},
 
     {"000000000000000000000000000000000200000000000000",
      "00000000000000000000000000000000",
      "5D989E122B78C758921EDBEEB827F0C0",
-     {0},
-     {0}},
+     {},
+     {}},
 };
+
+std::uint8_t CharToInt(char input) {
+  if (input >= '0' && input <= '9') {
+    return input - '0';
+  }
+  if (input >= 'A' && input <= 'F') {
+    return input - 'A' + 10;
+  }
+  if (input >= 'a' && input <= 'f') {
+    return input - 'a' + 10;
+  }
+  throw std::invalid_argument("Invalid input string");
+}  // CharToInt
 
 void TextToHex(const char* in, char* data) {
   // given a text string, convert to hex data
-  int val;
-  while (*in) {
-    val = *in++;
-    if (val > '9') {
-      val = toupper(val) - 'A' + 10;
-    } else {
-      val = val - '0';
-    }
-    *data = val * 16;
-    val = *in++;
-    if (val > '9') {
-      val = toupper(val) - 'A' + 10;
-    } else {
-      val = val - '0';
-    }
-    *data++ += val;
+  while (*in && in[1]) {
+    *(data++) = static_cast<char>((CharToInt(*in) << 4) + CharToInt(in[1]));
+    in += 2;
   }
 }  // TextToHex
+
+std::string HexToText(const char* in, size_t len) {
+  std::stringstream ss;
+  ss << std::hex << std::setfill('0');
+
+  for (size_t index(0); index < len; ++index) {
+    ss << std::setw(2) << static_cast<uint8_t>(*in++);
+  }
+
+  return ss.str();
+}
 
 // test a given test vector, see that internals are working
 // return false iff fails
 bool TestVector(const test_t& vector, bool use_states) {
   bool retval = true;  // assume passes
   // data sizes in bytes
-  int keylen = std::strlen(vector.key) / 2;
-  int blocklen = std::strlen(vector.plaintext) / 2;
+  int keylen = static_cast<int>(vector.key.length() / 2);
+  int blocklen = static_cast<int>(vector.plaintext.length() / 2);
 
   AES crypt;
   crypt.SetParameters(keylen * 8, blocklen * 8);
-  unsigned char key[32], plaintext[32], ciphertext[32], temptext[32];
+  unsigned char key[32] = {}, plaintext[32] = {}, ciphertext[32] = {},
+                temptext[32] = {};
   unsigned char states[4096 * 20];
 
-  TextToHex(vector.key, reinterpret_cast<char*>(key));
-  TextToHex(vector.ciphertext, reinterpret_cast<char*>(ciphertext));
-  TextToHex(vector.plaintext, reinterpret_cast<char*>(plaintext));
+  TextToHex(vector.key.c_str(), reinterpret_cast<char*>(key));
+  TextToHex(vector.ciphertext.c_str(), reinterpret_cast<char*>(ciphertext));
+  TextToHex(vector.plaintext.c_str(), reinterpret_cast<char*>(plaintext));
 
   if (use_states == true) {
-    for (int pos = 0; pos < 9; pos++) {
-      TextToHex(vector.e_vectors[pos],
+    for (ptrdiff_t pos = 0; pos < 9; pos++) {
+      TextToHex(vector.e_vectors[pos].c_str(),
                 reinterpret_cast<char*>(states) + pos * 16);
     }
   }
@@ -299,11 +309,11 @@ void Timing(int rounds, int keylen, int blocklen) {
     crypt.EncryptBlock(plaintext, ciphertext);
     end1 = std::chrono::steady_clock::now();
     std::chrono::duration<double> timediff = end1 - start1;
-    const double amortised_timediff =
+    auto amortised_timediff =
         std::chrono::duration_cast<std::chrono::microseconds>(timediff -
                                                               overhead)
             .count();
-    total_e += amortised_timediff;
+    total_e += static_cast<double>(amortised_timediff);
     if (min_e > amortised_timediff) {
       min_e = amortised_timediff;
     }
@@ -326,11 +336,11 @@ void Timing(int rounds, int keylen, int blocklen) {
     crypt.DecryptBlock(plaintext, ciphertext);
     end1 = std::chrono::steady_clock::now();
     std::chrono::duration<double> timediff = end1 - start1;
-    const double amortised_timediff =
+    auto amortised_timediff =
         std::chrono::duration_cast<std::chrono::microseconds>(timediff -
                                                               overhead)
             .count();
-    total_d += amortised_timediff;
+    total_d += static_cast<double>(amortised_timediff);
     if (min_d > amortised_timediff) {
       min_d = amortised_timediff;
     }
@@ -349,7 +359,7 @@ void AESEncryptFile(const char* fname) {
 
   // get file size
   ifile.seekg(0, std::ios_base::end);
-  int size, fsize = ifile.tellg();
+  std::streamoff size, fsize = ifile.tellg();
   ifile.seekg(0, std::ios_base::beg);
 
   // round up (ignore pad for here)
@@ -377,7 +387,7 @@ void AESEncryptFile(const char* fname) {
   ifile.close();
 }  // AESEncryptFile
 
-int main(void) {
+int run_tests(void) {
 #ifdef USE_SLOW_RIJNDAEL
   std::cout << "Running slow Rijndael test" << std::endl;
 #else
@@ -424,6 +434,20 @@ int main(void) {
   } else {
     std::cout << "PASSED: All tests passed\n";
     return EXIT_SUCCESS;
+  }
+}  // run_tests
+
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
+  try {
+    return run_tests();
+  } catch (const std::exception& e) {
+    // standard exceptions
+    std::cout << "Caught std::exception in main: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  } catch (...) {
+    // everything else
+    std::cout << "Caught unknown exception in main" << std::endl;
+    return EXIT_FAILURE;
   }
 }  // main
 
