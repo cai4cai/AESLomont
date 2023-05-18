@@ -30,6 +30,7 @@
 */
 
 // code to test the algorithm
+#include <array>
 #include <cassert>
 #include <chrono>
 #include <cstdio>
@@ -37,6 +38,7 @@
 #include <cstring>
 #include <ctime>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
